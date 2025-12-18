@@ -1,0 +1,409 @@
+# Game Asset Tool - TODO List
+
+## Project Overview
+
+เว็บแอพสำหรับเป็นเครื่องมือช่วยในการเขียนเกม (Texture, Tilemap, Tileset, Spritesheet, Spriteset)
+แรงบันดาลใจจาก: Tile Editor, TexturePacker, Aseprite, Tiled Map Editor
+
+---
+
+## Phase 1: Foundation & Layout ✅ (Current)
+
+### 1.1 Project Setup
+
+- [ ] Set up folder structure (Clean Architecture)
+  - `src/presentation/components/` - UI Components
+  - `src/presentation/contexts/` - React Contexts
+  - `src/presentation/hooks/` - Custom Hooks
+  - `src/presentation/stores/` - Zustand Stores
+  - `src/presentation/presenters/` - Presenters
+  - `src/domain/types/` - TypeScript Types
+  - `src/domain/data/` - Data Models
+  - `src/infrastructure/` - External Services
+
+### 1.2 Theme System
+
+- [ ] Create ThemeProvider with dark mode support
+- [ ] Create ThemeToggle component
+- [ ] Persist theme preference (localStorage)
+
+### 1.3 MainLayout (IE5 Browser Style)
+
+- [ ] Title Bar with app name and window controls
+- [ ] Menu Bar (File, Edit, View, Tools, Help)
+- [ ] Toolbar with icon buttons
+- [ ] Address Bar / Breadcrumb
+- [ ] Status Bar (Footer)
+- [ ] Full screen layout (no scroll)
+- [ ] Windows 98 retro aesthetic
+
+### 1.4 Landing Page
+
+- [ ] Welcome screen with app branding
+- [ ] Quick actions / Recent projects
+- [ ] Feature highlights
+
+---
+
+## Phase 2: Core Editor Framework
+
+### 2.1 Canvas System
+
+- [ ] HTML5 Canvas wrapper component
+- [ ] Zoom in/out functionality
+- [ ] Pan/scroll navigation
+- [ ] Grid overlay toggle
+- [ ] Pixel-perfect rendering
+- [ ] Canvas resize handling
+
+### 2.2 Tool System
+
+- [ ] Tool registry (Plugin-based)
+- [ ] Selection tool (Rectangle, Lasso, Magic Wand)
+- [ ] Pencil/Brush tool
+- [ ] Eraser tool
+- [ ] Fill (Bucket) tool
+- [ ] Color picker (Eyedropper)
+- [ ] Move tool
+- [ ] Zoom tool
+- [ ] Hand tool (Pan)
+
+### 2.3 Color System
+
+- [ ] Color palette panel
+- [ ] Primary/Secondary color selector
+- [ ] RGB/HSV/HEX color picker
+- [ ] Color history
+- [ ] Import/Export palettes (.pal, .gpl, .ase)
+- [ ] Popular game palettes (NES, SNES, GB, etc.)
+
+### 2.4 Layer System
+
+- [ ] Layer panel
+- [ ] Add/Remove layers
+- [ ] Layer visibility toggle
+- [ ] Layer opacity
+- [ ] Layer blending modes
+- [ ] Layer reordering (drag & drop)
+- [ ] Layer grouping
+- [ ] Merge layers
+
+---
+
+## Phase 3: Texture Editor
+
+### 3.1 Texture Canvas
+
+- [ ] Create new texture (custom size)
+- [ ] Import image files (PNG, JPG, GIF, WebP)
+- [ ] Texture preview panel
+- [ ] 9-slice editor for UI textures
+- [ ] Seamless texture preview
+
+### 3.2 Texture Operations
+
+- [ ] Resize texture
+- [ ] Crop texture
+- [ ] Rotate/Flip
+- [ ] Filters (Blur, Sharpen, Pixelate)
+- [ ] Color adjustments (Brightness, Contrast, Saturation)
+- [ ] Outline generator
+- [ ] Shadow generator
+
+### 3.3 Texture Atlas / Packing
+
+- [ ] Import multiple images
+- [ ] Auto-pack algorithm (MaxRects, Shelf, etc.)
+- [ ] Manual arrangement
+- [ ] Padding/Spacing settings
+- [ ] Power of 2 sizing option
+- [ ] Trim transparency option
+- [ ] Preview packed result
+
+---
+
+## Phase 4: Tilemap & Tileset Editor
+
+### 4.1 Tileset Management
+
+- [ ] Import tileset image
+- [ ] Define tile size (8x8, 16x16, 32x32, custom)
+- [ ] Auto-slice tileset
+- [ ] Manual tile selection
+- [ ] Tile metadata (collision, animation, tags)
+- [ ] Tileset preview
+
+### 4.2 Tilemap Editor
+
+- [ ] Create new tilemap (grid size)
+- [ ] Multiple tilemap layers
+- [ ] Paint tiles on map
+- [ ] Bucket fill for tiles
+- [ ] Rectangle select tiles
+- [ ] Copy/Paste tile regions
+- [ ] Auto-tile rules (terrain matching)
+- [ ] Wang tile support
+
+### 4.3 Tilemap Features
+
+- [ ] Mini-map preview
+- [ ] Collision layer
+- [ ] Object layer
+- [ ] Custom properties per tile
+- [ ] Animated tiles preview
+- [ ] Tile variations (random)
+
+---
+
+## Phase 5: Spritesheet & Animation Editor
+
+### 5.1 Spritesheet Import/Creation
+
+- [ ] Import spritesheet image
+- [ ] Auto-detect frames (grid-based)
+- [ ] Manual frame definition
+- [ ] Frame reordering
+- [ ] Frame duplication
+- [ ] Frame deletion
+
+### 5.2 Animation System
+
+- [ ] Animation timeline
+- [ ] Play/Pause/Stop controls
+- [ ] Frame duration (per-frame timing)
+- [ ] Loop settings
+- [ ] Ping-pong animation
+- [ ] Onion skinning (ghost frames)
+- [ ] Animation preview window
+
+### 5.3 Animation Management
+
+- [ ] Multiple animations per spritesheet
+- [ ] Animation tags/names
+- [ ] Animation states (Idle, Walk, Run, Jump, etc.)
+- [ ] Animation events/triggers
+- [ ] Animation blending preview
+
+---
+
+## Phase 6: Export System
+
+### 6.1 Export Formats - Cocos Creator
+
+- [ ] Texture Packer (.plist + .png)
+- [ ] Auto Atlas format
+- [ ] Spine JSON format
+- [ ] DragonBones format
+- [ ] Tilemap TMX format
+
+### 6.2 Export Formats - Phaser
+
+- [ ] JSON Array format
+- [ ] JSON Hash format
+- [ ] XML (Starling) format
+- [ ] Tilemap JSON format
+- [ ] Phaser 3 Atlas format
+
+### 6.3 Export Formats - Unity
+
+- [ ] Unity Sprite Atlas (.spriteatlas)
+- [ ] Sprite metadata (.meta)
+- [ ] Animation clips (.anim)
+- [ ] Tilemap palette
+- [ ] ScriptableObject data
+
+### 6.4 Export Formats - General
+
+- [ ] CSS Sprites
+- [ ] LibGDX format
+- [ ] Godot format
+- [ ] GameMaker format
+- [ ] Aseprite format
+- [ ] Raw JSON/XML data
+- [ ] PNG sequence export
+
+### 6.5 Export Settings
+
+- [ ] Output directory selection
+- [ ] Naming conventions
+- [ ] Scale options (1x, 2x, 4x)
+- [ ] Image format (PNG, WebP, JPG)
+- [ ] Compression settings
+- [ ] Batch export
+
+---
+
+## Phase 7: Project Management
+
+### 7.1 Project System
+
+- [ ] Create new project
+- [ ] Open existing project
+- [ ] Save project (.gat format)
+- [ ] Auto-save feature
+- [ ] Project templates
+- [ ] Recent projects list
+
+### 7.2 Asset Management
+
+- [ ] Asset browser panel
+- [ ] Folder organization
+- [ ] Asset search/filter
+- [ ] Asset tags
+- [ ] Asset preview
+- [ ] Drag & drop import
+
+### 7.3 History & Undo
+
+- [ ] Undo/Redo system
+- [ ] History panel
+- [ ] Action descriptions
+- [ ] History snapshots
+
+---
+
+## Phase 8: Advanced Features
+
+### 8.1 Collaboration (Optional)
+
+- [ ] Cloud project storage
+- [ ] Share projects via link
+- [ ] Real-time collaboration
+- [ ] Version history
+
+### 8.2 Plugin System
+
+- [ ] Plugin API
+- [ ] Custom tool plugins
+- [ ] Custom export format plugins
+- [ ] Plugin marketplace
+
+### 8.3 AI-Assisted Features
+
+- [ ] Auto-palette extraction
+- [ ] Background removal
+- [ ] Sprite upscaling
+- [ ] Auto-tileset generation
+- [ ] Animation suggestions
+
+### 8.4 Performance
+
+- [ ] WebGL rendering
+- [ ] Web Workers for heavy operations
+- [ ] Lazy loading
+- [ ] Caching system
+- [ ] Large file handling
+
+---
+
+## Phase 9: UI/UX Polish
+
+### 9.1 Windows 98 / IE5 Theme
+
+- [ ] Window frames with 3D borders
+- [ ] Classic button styles
+- [ ] Menu dropdowns
+- [ ] Dialog boxes
+- [ ] Tooltip styling
+- [ ] Progress bars
+- [ ] Tab controls
+
+### 9.2 Keyboard Shortcuts
+
+- [ ] Global shortcuts
+- [ ] Tool shortcuts
+- [ ] Customizable keybindings
+- [ ] Shortcut cheatsheet
+
+### 9.3 Accessibility
+
+- [ ] High contrast mode
+- [ ] Keyboard navigation
+- [ ] Screen reader support
+- [ ] Customizable UI scale
+
+### 9.4 Localization
+
+- [ ] Thai language (default)
+- [ ] English language
+- [ ] Language selector
+
+---
+
+## Phase 10: Documentation & Help
+
+### 10.1 In-App Help
+
+- [ ] Getting started guide
+- [ ] Tool tutorials
+- [ ] Keyboard shortcut reference
+- [ ] FAQ section
+
+### 10.2 Developer Documentation
+
+- [ ] API documentation
+- [ ] Plugin development guide
+- [ ] Contributing guidelines
+
+---
+
+## Tech Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS 4
+- **State Management**: Zustand
+- **Form Handling**: react-hook-form + zod
+- **Canvas**: HTML5 Canvas / Fabric.js / Konva.js
+- **File Handling**: Browser File API
+- **Storage**: IndexedDB (localforage)
+- **Export**: JSZip for bundled exports
+
+---
+
+## File Structure (Clean Architecture)
+
+```
+src/
+├── domain/
+│   ├── types/           # TypeScript interfaces & types
+│   └── data/            # Data models & constants
+├── infrastructure/
+│   ├── canvas/          # Canvas rendering engine
+│   ├── storage/         # File & project storage
+│   └── export/          # Export format handlers
+└── presentation/
+    ├── components/      # UI Components (Atomic Design)
+    │   ├── atoms/
+    │   ├── molecules/
+    │   ├── organisms/
+    │   └── templates/
+    ├── contexts/        # React Contexts
+    ├── hooks/           # Custom Hooks
+    ├── stores/          # Zustand Stores
+    └── presenters/      # Presenter classes
+```
+
+---
+
+## Current Sprint
+
+**Sprint 1: Foundation**
+
+1. ✅ Create TODO.md
+2. 🔄 Set up folder structure
+3. 🔄 Create ThemeProvider + Theme Toggle
+4. 🔄 Create MainLayout (IE5 style)
+5. 🔄 Create Landing Page
+6. 🔄 Add IE5 CSS styles
+
+---
+
+## Notes
+
+- Follow SOLID principles
+- Follow Clean Architecture pattern
+- Use Atomic Design for components
+- All pages follow CREATE_PAGE_PATTERN.md
+- Full screen app (no page scroll)
+- Windows 98 / IE5 retro aesthetic
