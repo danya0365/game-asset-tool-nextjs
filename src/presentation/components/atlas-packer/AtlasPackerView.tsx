@@ -16,6 +16,7 @@ export function AtlasPackerView() {
     setAtlasName,
     updateSettings,
     addFiles,
+    addSpriteStrip,
     removeFrame,
     clearFrames,
     packAtlas,
@@ -44,6 +45,30 @@ export function AtlasPackerView() {
   const [currentAnimFrame, setCurrentAnimFrame] = useState(0);
   const animationRef = useRef<number | null>(null);
   const lastFrameTimeRef = useRef<number>(0);
+
+  // Sprite Strip Import State
+  const [spriteStripDialog, setSpriteStripDialog] = useState<{
+    isOpen: boolean;
+    file: File | null;
+    imageUrl: string | null;
+    imageWidth: number;
+    imageHeight: number;
+    frameWidth: number;
+    frameHeight: number;
+    frameCount: number;
+    direction: "horizontal" | "vertical";
+  }>({
+    isOpen: false,
+    file: null,
+    imageUrl: null,
+    imageWidth: 0,
+    imageHeight: 0,
+    frameWidth: 64,
+    frameHeight: 64,
+    frameCount: 1,
+    direction: "horizontal",
+  });
+  const stripInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = useCallback(() => {
     fileInputRef.current?.click();
@@ -145,6 +170,75 @@ export function AtlasPackerView() {
     [frames.length]
   );
 
+  // Sprite Strip Import Handlers
+  const handleStripFileSelect = useCallback(() => {
+    stripInputRef.current?.click();
+  }, []);
+
+  const handleStripFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const img = new Image();
+      img.onload = () => {
+        // Auto-detect frame count from filename (e.g., "sprite_strip9.png")
+        const stripMatch = file.name.match(/_strip(\d+)/i);
+        const detectedCount = stripMatch ? parseInt(stripMatch[1]) : 1;
+
+        // Calculate frame dimensions
+        const frameWidth =
+          detectedCount > 1 ? Math.floor(img.width / detectedCount) : img.width;
+        const frameHeight = img.height;
+
+        setSpriteStripDialog({
+          isOpen: true,
+          file,
+          imageUrl: img.src,
+          imageWidth: img.width,
+          imageHeight: img.height,
+          frameWidth,
+          frameHeight,
+          frameCount: detectedCount,
+          direction: "horizontal",
+        });
+      };
+      img.src = URL.createObjectURL(file);
+    },
+    []
+  );
+
+  const handleStripImport = useCallback(() => {
+    if (!spriteStripDialog.file) return;
+
+    addSpriteStrip(
+      spriteStripDialog.file,
+      spriteStripDialog.frameWidth,
+      spriteStripDialog.frameHeight,
+      spriteStripDialog.frameCount,
+      spriteStripDialog.direction
+    );
+
+    setSpriteStripDialog((prev) => ({
+      ...prev,
+      isOpen: false,
+      file: null,
+      imageUrl: null,
+    }));
+  }, [spriteStripDialog, addSpriteStrip]);
+
+  const closeStripDialog = useCallback(() => {
+    if (spriteStripDialog.imageUrl) {
+      URL.revokeObjectURL(spriteStripDialog.imageUrl);
+    }
+    setSpriteStripDialog((prev) => ({
+      ...prev,
+      isOpen: false,
+      file: null,
+      imageUrl: null,
+    }));
+  }, [spriteStripDialog.imageUrl]);
+
   return (
     <MainLayout title="Atlas Packer - Game Asset Tool">
       <div className="h-full flex">
@@ -244,20 +338,35 @@ export function AtlasPackerView() {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-1 mt-2">
+            <div className="flex flex-col gap-1 mt-2">
+              <div className="flex gap-1">
+                <button
+                  className="ie-button ie-button-sm flex-1"
+                  onClick={handleFileSelect}
+                >
+                  ➕ Add
+                </button>
+                <button
+                  className="ie-button ie-button-sm flex-1"
+                  onClick={clearFrames}
+                  disabled={frames.length === 0}
+                >
+                  🗑️ Clear
+                </button>
+              </div>
               <button
-                className="ie-button ie-button-sm flex-1"
-                onClick={handleFileSelect}
+                className="ie-button ie-button-sm w-full"
+                onClick={handleStripFileSelect}
               >
-                ➕ Add
+                🎞️ Import Strip
               </button>
-              <button
-                className="ie-button ie-button-sm flex-1"
-                onClick={clearFrames}
-                disabled={frames.length === 0}
-              >
-                🗑️ Clear
-              </button>
+              <input
+                ref={stripInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleStripFileChange}
+              />
             </div>
           </div>
 
@@ -620,6 +729,149 @@ export function AtlasPackerView() {
           </div>
         )}
 
+        {/* Sprite Strip Import Dialog */}
+        {spriteStripDialog.isOpen && (
+          <div className="ie-dialog" onClick={closeStripDialog}>
+            <div
+              className="ie-dialog-content min-w-[400px] max-w-[600px]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="ie-dialog-header">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">🎞️</span>
+                  <span className="ie-dialog-title">Import Sprite Strip</span>
+                </div>
+                <button
+                  onClick={closeStripDialog}
+                  className="ie-titlebar-btn ie-titlebar-close"
+                >
+                  <span>×</span>
+                </button>
+              </div>
+              <div className="ie-dialog-body space-y-3">
+                {/* Preview */}
+                <div
+                  className="ie-panel-inset p-2 overflow-auto max-h-40"
+                  style={{
+                    backgroundImage:
+                      "url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%2210%22%3E%3Crect width=%225%22 height=%225%22 fill=%22%23ccc%22/%3E%3Crect x=%225%22 y=%225%22 width=%225%22 height=%225%22 fill=%22%23ccc%22/%3E%3C/svg%3E')",
+                  }}
+                >
+                  {spriteStripDialog.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={spriteStripDialog.imageUrl}
+                      alt="Sprite Strip Preview"
+                      className="max-w-full"
+                      style={{ imageRendering: "pixelated" }}
+                    />
+                  )}
+                </div>
+
+                {/* Image Info */}
+                <div className="text-xs text-gray-600 dark:text-gray-400">
+                  Image Size: {spriteStripDialog.imageWidth} ×{" "}
+                  {spriteStripDialog.imageHeight} px
+                </div>
+
+                {/* Settings */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1">
+                      Frame Width
+                    </label>
+                    <input
+                      type="number"
+                      className="ie-input"
+                      value={spriteStripDialog.frameWidth}
+                      onChange={(e) =>
+                        setSpriteStripDialog((prev) => ({
+                          ...prev,
+                          frameWidth: parseInt(e.target.value) || 1,
+                        }))
+                      }
+                      min={1}
+                      max={spriteStripDialog.imageWidth}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1">
+                      Frame Height
+                    </label>
+                    <input
+                      type="number"
+                      className="ie-input"
+                      value={spriteStripDialog.frameHeight}
+                      onChange={(e) =>
+                        setSpriteStripDialog((prev) => ({
+                          ...prev,
+                          frameHeight: parseInt(e.target.value) || 1,
+                        }))
+                      }
+                      min={1}
+                      max={spriteStripDialog.imageHeight}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1">
+                      Frame Count
+                    </label>
+                    <input
+                      type="number"
+                      className="ie-input"
+                      value={spriteStripDialog.frameCount}
+                      onChange={(e) =>
+                        setSpriteStripDialog((prev) => ({
+                          ...prev,
+                          frameCount: parseInt(e.target.value) || 1,
+                        }))
+                      }
+                      min={1}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1">
+                      Direction
+                    </label>
+                    <select
+                      className="ie-input"
+                      value={spriteStripDialog.direction}
+                      onChange={(e) =>
+                        setSpriteStripDialog((prev) => ({
+                          ...prev,
+                          direction: e.target.value as
+                            | "horizontal"
+                            | "vertical",
+                        }))
+                      }
+                    >
+                      <option value="horizontal">Horizontal</option>
+                      <option value="vertical">Vertical</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Calculated Info */}
+                <div className="ie-panel-inset p-2 text-xs text-gray-600 dark:text-gray-400">
+                  <div>
+                    Will extract {spriteStripDialog.frameCount} frames of{" "}
+                    {spriteStripDialog.frameWidth}×
+                    {spriteStripDialog.frameHeight} px each
+                  </div>
+                </div>
+              </div>
+              <div className="ie-dialog-footer">
+                <button className="ie-button" onClick={handleStripImport}>
+                  ✅ Import Frames
+                </button>
+                <button className="ie-button" onClick={closeStripDialog}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Error Modal */}
         {error && (
           <div className="ie-dialog" onClick={clearError}>
@@ -642,7 +894,7 @@ export function AtlasPackerView() {
               <div className="ie-dialog-body">
                 <div className="flex items-start gap-3">
                   <div className="text-3xl">❌</div>
-                  <div className="text-xs text-gray-700 dark:text-gray-300">
+                  <div className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                     {error}
                   </div>
                 </div>
