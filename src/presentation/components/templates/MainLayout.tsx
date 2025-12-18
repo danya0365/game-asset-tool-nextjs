@@ -1,6 +1,8 @@
 "use client";
 
 import { ThemeToggle } from "@/src/presentation/components/atoms/ThemeToggle";
+import { ComingSoonModal } from "@/src/presentation/components/molecules/ComingSoonModal";
+import { useComingSoonModal } from "@/src/presentation/hooks/useComingSoonModal";
 import { useState } from "react";
 
 interface MainLayoutProps {
@@ -106,6 +108,8 @@ export function MainLayout({
 }: MainLayoutProps) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [address] = useState("gat://home");
+  const { isOpen, featureName, showComingSoon, hideComingSoon } =
+    useComingSoonModal();
 
   const handleMenuClick = (label: string) => {
     setActiveMenu(activeMenu === label ? null : label);
@@ -113,6 +117,23 @@ export function MainLayout({
 
   const handleMenuBlur = () => {
     setTimeout(() => setActiveMenu(null), 150);
+  };
+
+  const handleMenuItemClick = (itemLabel: string) => {
+    setActiveMenu(null);
+    showComingSoon(itemLabel);
+  };
+
+  const handleToolbarClick = (toolTitle: string) => {
+    showComingSoon(toolTitle);
+  };
+
+  const handleAddressBarClick = (action: string) => {
+    showComingSoon(action);
+  };
+
+  const handleWindowButtonClick = (action: string) => {
+    showComingSoon(action);
   };
 
   return (
@@ -126,16 +147,22 @@ export function MainLayout({
           <button
             className="ie-titlebar-btn ie-titlebar-minimize"
             title="Minimize"
+            onClick={() => handleWindowButtonClick("Minimize Window")}
           >
             <span>_</span>
           </button>
           <button
             className="ie-titlebar-btn ie-titlebar-maximize"
             title="Maximize"
+            onClick={() => handleWindowButtonClick("Maximize Window")}
           >
             <span>□</span>
           </button>
-          <button className="ie-titlebar-btn ie-titlebar-close" title="Close">
+          <button
+            className="ie-titlebar-btn ie-titlebar-close"
+            title="Close"
+            onClick={() => handleWindowButtonClick("Close Window")}
+          >
             <span>×</span>
           </button>
         </div>
@@ -166,6 +193,7 @@ export function MainLayout({
                         item.disabled ? "disabled" : ""
                       }`}
                       disabled={item.disabled}
+                      onClick={() => handleMenuItemClick(item.label)}
                     >
                       <span>{item.label}</span>
                       {item.shortcut && (
@@ -188,7 +216,14 @@ export function MainLayout({
           btn.divider ? (
             <div key={idx} className="ie-toolbar-divider" />
           ) : (
-            <button key={idx} className="ie-toolbar-btn" title={btn.title}>
+            <button
+              key={idx}
+              className="ie-toolbar-btn"
+              title={btn.title}
+              onClick={() =>
+                handleToolbarClick(btn.title || btn.label || "Tool")
+              }
+            >
               <span className="ie-toolbar-icon">{btn.icon}</span>
               <span className="ie-toolbar-label">{btn.label}</span>
             </button>
@@ -208,8 +243,18 @@ export function MainLayout({
             readOnly
           />
         </div>
-        <button className="ie-button ie-button-sm">Go</button>
-        <button className="ie-button ie-button-sm">Links</button>
+        <button
+          className="ie-button ie-button-sm"
+          onClick={() => handleAddressBarClick("Navigate")}
+        >
+          Go
+        </button>
+        <button
+          className="ie-button ie-button-sm"
+          onClick={() => handleAddressBarClick("Links")}
+        >
+          Links
+        </button>
       </div>
 
       {/* Main Content Area */}
@@ -229,6 +274,13 @@ export function MainLayout({
           <span>Internet</span>
         </div>
       </div>
+
+      {/* Coming Soon Modal */}
+      <ComingSoonModal
+        isOpen={isOpen}
+        onClose={hideComingSoon}
+        featureName={featureName}
+      />
     </div>
   );
 }

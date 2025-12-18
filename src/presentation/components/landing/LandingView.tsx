@@ -1,6 +1,8 @@
 "use client";
 
+import { ComingSoonModal } from "@/src/presentation/components/molecules/ComingSoonModal";
 import { MainLayout } from "@/src/presentation/components/templates/MainLayout";
+import { useComingSoonModal } from "@/src/presentation/hooks/useComingSoonModal";
 
 interface FeatureCard {
   icon: string;
@@ -71,6 +73,9 @@ const quickActions: QuickAction[] = [
 ];
 
 export function LandingView() {
+  const { isOpen, featureName, showComingSoon, hideComingSoon } =
+    useComingSoonModal();
+
   return (
     <MainLayout title="Game Asset Tool - Home">
       <div className="h-full overflow-auto ie-scrollbar p-4">
@@ -101,6 +106,7 @@ export function LandingView() {
                       <button
                         key={action.label}
                         className="ie-button w-full text-left flex items-center gap-3 py-2"
+                        onClick={() => showComingSoon(action.label)}
                       >
                         <span className="text-lg">{action.icon}</span>
                         <div>
@@ -120,18 +126,33 @@ export function LandingView() {
                 <div className="ie-groupbox mt-4">
                   <span className="ie-groupbox-title">Recent Projects</span>
                   <div className="ie-listview -mt-2 max-h-32 overflow-auto ie-scrollbar">
-                    <div className="ie-listview-item">
+                    <button
+                      className="ie-listview-item w-full text-left"
+                      onClick={() =>
+                        showComingSoon("Open Project: my-game-assets.gat")
+                      }
+                    >
                       <span>📁</span>
                       <span>my-game-assets.gat</span>
-                    </div>
-                    <div className="ie-listview-item">
+                    </button>
+                    <button
+                      className="ie-listview-item w-full text-left"
+                      onClick={() =>
+                        showComingSoon("Open Project: platformer-tiles.gat")
+                      }
+                    >
                       <span>📁</span>
                       <span>platformer-tiles.gat</span>
-                    </div>
-                    <div className="ie-listview-item">
+                    </button>
+                    <button
+                      className="ie-listview-item w-full text-left"
+                      onClick={() =>
+                        showComingSoon("Open Project: character-sprites.gat")
+                      }
+                    >
                       <span>📁</span>
                       <span>character-sprites.gat</span>
-                    </div>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -147,6 +168,7 @@ export function LandingView() {
                       <button
                         key={feature.title}
                         className="ie-panel-inset p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        onClick={() => showComingSoon(feature.title)}
                       >
                         <div className="text-2xl mb-1">{feature.icon}</div>
                         <div className="font-medium text-xs mb-1 text-gray-900 dark:text-gray-100">
@@ -166,16 +188,54 @@ export function LandingView() {
                 <div className="ie-groupbox">
                   <span className="ie-groupbox-title">Supported Formats</span>
                   <div className="flex flex-wrap gap-2 -mt-2">
-                    <span className="ie-button ie-button-sm">
+                    <button
+                      className="ie-button ie-button-sm"
+                      onClick={() => showComingSoon("Export: Cocos Creator")}
+                    >
                       Cocos Creator
-                    </span>
-                    <span className="ie-button ie-button-sm">Phaser</span>
-                    <span className="ie-button ie-button-sm">Unity</span>
-                    <span className="ie-button ie-button-sm">Godot</span>
-                    <span className="ie-button ie-button-sm">LibGDX</span>
-                    <span className="ie-button ie-button-sm">GameMaker</span>
-                    <span className="ie-button ie-button-sm">CSS Sprites</span>
-                    <span className="ie-button ie-button-sm">JSON</span>
+                    </button>
+                    <button
+                      className="ie-button ie-button-sm"
+                      onClick={() => showComingSoon("Export: Phaser")}
+                    >
+                      Phaser
+                    </button>
+                    <button
+                      className="ie-button ie-button-sm"
+                      onClick={() => showComingSoon("Export: Unity")}
+                    >
+                      Unity
+                    </button>
+                    <button
+                      className="ie-button ie-button-sm"
+                      onClick={() => showComingSoon("Export: Godot")}
+                    >
+                      Godot
+                    </button>
+                    <button
+                      className="ie-button ie-button-sm"
+                      onClick={() => showComingSoon("Export: LibGDX")}
+                    >
+                      LibGDX
+                    </button>
+                    <button
+                      className="ie-button ie-button-sm"
+                      onClick={() => showComingSoon("Export: GameMaker")}
+                    >
+                      GameMaker
+                    </button>
+                    <button
+                      className="ie-button ie-button-sm"
+                      onClick={() => showComingSoon("Export: CSS Sprites")}
+                    >
+                      CSS Sprites
+                    </button>
+                    <button
+                      className="ie-button ie-button-sm"
+                      onClick={() => showComingSoon("Export: JSON")}
+                    >
+                      JSON
+                    </button>
                   </div>
                 </div>
               </div>
@@ -192,10 +252,16 @@ export function LandingView() {
                       <li>Export ไปยัง Format ที่ต้องการ</li>
                     </ol>
                     <div className="mt-3 flex gap-2">
-                      <button className="ie-button ie-button-sm">
+                      <button
+                        className="ie-button ie-button-sm"
+                        onClick={() => showComingSoon("Documentation")}
+                      >
                         📖 Documentation
                       </button>
-                      <button className="ie-button ie-button-sm">
+                      <button
+                        className="ie-button ie-button-sm"
+                        onClick={() => showComingSoon("Keyboard Shortcuts")}
+                      >
                         ⌨️ Keyboard Shortcuts
                       </button>
                     </div>
@@ -215,6 +281,12 @@ export function LandingView() {
           </div>
         </div>
       </div>
+      {/* Coming Soon Modal */}
+      <ComingSoonModal
+        isOpen={isOpen}
+        onClose={hideComingSoon}
+        featureName={featureName}
+      />
     </MainLayout>
   );
 }
