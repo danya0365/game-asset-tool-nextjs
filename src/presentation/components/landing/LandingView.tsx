@@ -3,11 +3,13 @@
 import { ComingSoonModal } from "@/src/presentation/components/molecules/ComingSoonModal";
 import { MainLayout } from "@/src/presentation/components/templates/MainLayout";
 import { useComingSoonModal } from "@/src/presentation/hooks/useComingSoonModal";
+import Link from "next/link";
 
 interface FeatureCard {
   icon: string;
   title: string;
   description: string;
+  href?: string;
 }
 
 interface QuickAction {
@@ -36,6 +38,7 @@ const features: FeatureCard[] = [
     icon: "📦",
     title: "Atlas Packer",
     description: "Pack textures อัตโนมัติ รองรับหลาย algorithm",
+    href: "/atlas-packer",
   },
   {
     icon: "🎨",
@@ -164,21 +167,37 @@ export function LandingView() {
                 <div className="ie-groupbox">
                   <span className="ie-groupbox-title">Features</span>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 -mt-2">
-                    {features.map((feature) => (
-                      <button
-                        key={feature.title}
-                        className="ie-panel-inset p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                        onClick={() => showComingSoon(feature.title)}
-                      >
-                        <div className="text-2xl mb-1">{feature.icon}</div>
-                        <div className="font-medium text-xs mb-1 text-gray-900 dark:text-gray-100">
-                          {feature.title}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-                          {feature.description}
-                        </div>
-                      </button>
-                    ))}
+                    {features.map((feature) =>
+                      feature.href ? (
+                        <Link
+                          key={feature.title}
+                          href={feature.href}
+                          className="ie-panel-inset p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors block"
+                        >
+                          <div className="text-2xl mb-1">{feature.icon}</div>
+                          <div className="font-medium text-xs mb-1 text-gray-900 dark:text-gray-100">
+                            {feature.title}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                            {feature.description}
+                          </div>
+                        </Link>
+                      ) : (
+                        <button
+                          key={feature.title}
+                          className="ie-panel-inset p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                          onClick={() => showComingSoon(feature.title)}
+                        >
+                          <div className="text-2xl mb-1">{feature.icon}</div>
+                          <div className="font-medium text-xs mb-1 text-gray-900 dark:text-gray-100">
+                            {feature.title}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                            {feature.description}
+                          </div>
+                        </button>
+                      )
+                    )}
                   </div>
                 </div>
               </div>
