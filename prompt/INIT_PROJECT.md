@@ -6,6 +6,10 @@
 
 ใส่ทุกฟีเจอร์ที่คิดว่าเว็บแอพระดับโลกเขามีและทำกันนะครับ
 
+โดยทุกครั้งที่สร้าง page.tsx ต้องทำตาม rule ที่เขียนไว้ที่ /Users/marosdeeuma/game-asset-tool-nextjs/prompt/CREATE_PAGE_PATTERN.md
+
+ตามหลัก SOLID Clean
+
 เริ่มพัฒนาโปรเจคอันดับแรกเลย ต้องสร้างหน้า MainLayout พร้อม Header Footer และใส่ Theme Toggle เพื่อทำ dark mode
 
 MainLayout ต้องให้ออกแบบให้ เป็น Full screen ห้าม scroll อารมณ์เหมือนใช้เว็บแอพ
