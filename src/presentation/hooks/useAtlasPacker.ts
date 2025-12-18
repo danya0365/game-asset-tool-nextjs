@@ -273,7 +273,9 @@ export function useAtlasPacker() {
     }));
   }, []);
 
-  const packAtlas = useCallback(() => {
+  const packAtlas = useCallback((): PackedAtlas | null => {
+    let result: PackedAtlas | null = null;
+
     setState((prev) => {
       if (prev.frames.length === 0) {
         return { ...prev, error: "No images to pack" };
@@ -288,17 +290,21 @@ export function useAtlasPacker() {
         };
       }
 
+      result = packed;
       return {
         ...prev,
         packedAtlas: packed,
         error: null,
       };
     });
+
+    return result;
   }, []);
 
   const exportAtlas = useCallback(
-    async (format: string) => {
-      if (!state.packedAtlas) {
+    async (format: string, atlasOverride?: PackedAtlas | null) => {
+      const atlas = atlasOverride ?? state.packedAtlas;
+      if (!atlas) {
         setState((prev) => ({ ...prev, error: "Pack the atlas first" }));
         return;
       }
@@ -310,32 +316,32 @@ export function useAtlasPacker() {
 
         switch (format) {
           case "json-array":
-            content = exportToJsonArray(state.packedAtlas, state.atlasName);
+            content = exportToJsonArray(atlas, state.atlasName);
             extension = "json";
             mimeType = "application/json";
             break;
           case "json-hash":
-            content = exportToJsonHash(state.packedAtlas, state.atlasName);
+            content = exportToJsonHash(atlas, state.atlasName);
             extension = "json";
             mimeType = "application/json";
             break;
           case "cocos":
-            content = exportToCocos(state.packedAtlas, state.atlasName);
+            content = exportToCocos(atlas, state.atlasName);
             extension = "plist";
             mimeType = "application/xml";
             break;
           case "phaser":
-            content = exportToPhaser(state.packedAtlas, state.atlasName);
+            content = exportToPhaser(atlas, state.atlasName);
             extension = "json";
             mimeType = "application/json";
             break;
           case "unity":
-            content = exportToUnity(state.packedAtlas, state.atlasName);
+            content = exportToUnity(atlas, state.atlasName);
             extension = "json";
             mimeType = "application/json";
             break;
           case "css":
-            content = exportToCSS(state.packedAtlas, state.atlasName);
+            content = exportToCSS(atlas, state.atlasName);
             extension = "css";
             mimeType = "text/css";
             break;
@@ -354,22 +360,26 @@ export function useAtlasPacker() {
     [state.packedAtlas, state.atlasName]
   );
 
-  const exportPNG = useCallback(async () => {
-    if (!state.packedAtlas) {
-      setState((prev) => ({ ...prev, error: "Pack the atlas first" }));
-      return;
-    }
+  const exportPNG = useCallback(
+    async (atlasOverride?: PackedAtlas | null) => {
+      const atlas = atlasOverride ?? state.packedAtlas;
+      if (!atlas) {
+        setState((prev) => ({ ...prev, error: "Pack the atlas first" }));
+        return;
+      }
 
-    try {
-      const canvas = await renderAtlasToCanvas(state.packedAtlas);
-      downloadCanvas(canvas, `${state.atlasName}.png`);
-    } catch (err) {
-      setState((prev) => ({
-        ...prev,
-        error: err instanceof Error ? err.message : "Failed to export PNG",
-      }));
-    }
-  }, [state.packedAtlas, state.atlasName]);
+      try {
+        const canvas = await renderAtlasToCanvas(atlas);
+        downloadCanvas(canvas, `${state.atlasName}.png`);
+      } catch (err) {
+        setState((prev) => ({
+          ...prev,
+          error: err instanceof Error ? err.message : "Failed to export PNG",
+        }));
+      }
+    },
+    [state.packedAtlas, state.atlasName]
+  );
 
   const getPreviewCanvas =
     useCallback(async (): Promise<HTMLCanvasElement | null> => {

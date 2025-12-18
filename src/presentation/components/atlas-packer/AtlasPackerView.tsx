@@ -46,6 +46,9 @@ export function AtlasPackerView() {
   const animationRef = useRef<number | null>(null);
   const lastFrameTimeRef = useRef<number>(0);
 
+  // Animation Preview Popup State
+  const [showAnimPopup, setShowAnimPopup] = useState(false);
+
   // Sprite Strip Import State
   const [spriteStripDialog, setSpriteStripDialog] = useState<{
     isOpen: boolean;
@@ -97,8 +100,39 @@ export function AtlasPackerView() {
     (e: React.DragEvent) => {
       e.preventDefault();
       setIsDragging(false);
-      if (e.dataTransfer.files) {
-        addFiles(e.dataTransfer.files);
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        // Check if it's a sprite strip (filename contains _strip followed by number)
+        const stripMatch = file.name.match(/_strip(\d+)/i);
+
+        if (stripMatch && e.dataTransfer.files.length === 1) {
+          // Open sprite strip dialog
+          const img = new Image();
+          img.onload = () => {
+            const detectedCount = parseInt(stripMatch[1]);
+            const frameWidth =
+              detectedCount > 1
+                ? Math.floor(img.width / detectedCount)
+                : img.width;
+            const frameHeight = img.height;
+
+            setSpriteStripDialog({
+              isOpen: true,
+              file,
+              imageUrl: img.src,
+              imageWidth: img.width,
+              imageHeight: img.height,
+              frameWidth,
+              frameHeight,
+              frameCount: detectedCount,
+              direction: "horizontal",
+            });
+          };
+          img.src = URL.createObjectURL(file);
+        } else {
+          // Add as regular files
+          addFiles(e.dataTransfer.files);
+        }
       }
     },
     [addFiles]
@@ -239,6 +273,45 @@ export function AtlasPackerView() {
     }));
   }, [spriteStripDialog.imageUrl]);
 
+  // Auto-pack export handlers - use returned atlas directly to avoid race condition
+  const handleExportPNG = useCallback(async () => {
+    if (frames.length === 0) return;
+
+    // Auto-pack if not packed yet, use returned atlas directly
+    const atlas = packedAtlas ?? packAtlas();
+    if (atlas) {
+      exportPNG(atlas);
+    }
+  }, [frames.length, packedAtlas, packAtlas, exportPNG]);
+
+  const handleExportData = useCallback(async () => {
+    if (frames.length === 0) return;
+
+    // Auto-pack if not packed yet, use returned atlas directly
+    const atlas = packedAtlas ?? packAtlas();
+    if (atlas) {
+      exportAtlas(selectedFormat, atlas);
+    }
+  }, [frames.length, packedAtlas, packAtlas, exportAtlas, selectedFormat]);
+
+  const handleExportAll = useCallback(async () => {
+    if (frames.length === 0) return;
+
+    // Auto-pack if not packed yet, use returned atlas directly
+    const atlas = packedAtlas ?? packAtlas();
+    if (atlas) {
+      exportPNG(atlas);
+      exportAtlas(selectedFormat, atlas);
+    }
+  }, [
+    frames.length,
+    packedAtlas,
+    packAtlas,
+    exportPNG,
+    exportAtlas,
+    selectedFormat,
+  ]);
+
   return (
     <MainLayout title="Atlas Packer - Game Asset Tool">
       <div className="h-full flex">
@@ -374,13 +447,19 @@ export function AtlasPackerView() {
           <div className="ie-groupbox mt-1">
             <span className="ie-groupbox-title">Animation Preview</span>
             <div className="space-y-2 -mt-2">
-              {/* Animation Canvas */}
+              {/* Animation Canvas - Click to enlarge */}
               <div
-                className="ie-panel-inset h-32 flex items-center justify-center overflow-hidden"
+                className={`ie-panel-inset h-32 flex items-center justify-center overflow-hidden ${
+                  frames.length > 0
+                    ? "cursor-pointer hover:ring-2 hover:ring-blue-400"
+                    : ""
+                }`}
                 style={{
                   backgroundImage:
                     "url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%2210%22%3E%3Crect width=%225%22 height=%225%22 fill=%22%23ccc%22/%3E%3Crect x=%225%22 y=%225%22 width=%225%22 height=%225%22 fill=%22%23ccc%22/%3E%3C/svg%3E')",
                 }}
+                onClick={() => frames.length > 0 && setShowAnimPopup(true)}
+                title={frames.length > 0 ? "Click to enlarge" : ""}
               >
                 {frames.length > 0 && frames[currentAnimFrame]?.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -618,29 +697,32 @@ export function AtlasPackerView() {
               <div className="space-y-1">
                 <button
                   className="ie-button w-full"
-                  onClick={exportPNG}
-                  disabled={!packedAtlas}
+                  onClick={handleExportPNG}
+                  disabled={frames.length === 0}
                 >
                   🖼️ Export PNG
                 </button>
                 <button
                   className="ie-button w-full"
-                  onClick={() => exportAtlas(selectedFormat)}
-                  disabled={!packedAtlas}
+                  onClick={handleExportData}
+                  disabled={frames.length === 0}
                 >
                   📄 Export Data
                 </button>
                 <button
                   className="ie-button w-full"
-                  onClick={() => {
-                    exportPNG();
-                    exportAtlas(selectedFormat);
-                  }}
-                  disabled={!packedAtlas}
+                  onClick={handleExportAll}
+                  disabled={frames.length === 0}
                 >
                   📦 Export All
                 </button>
               </div>
+              {/* Auto-pack hint */}
+              {frames.length > 0 && !packedAtlas && (
+                <div className="text-xs text-blue-600 dark:text-blue-400 text-center">
+                  💡 Will auto-pack before export
+                </div>
+              )}
             </div>
 
             {/* Format Info */}
@@ -721,6 +803,117 @@ export function AtlasPackerView() {
                 <button
                   className="ie-button"
                   onClick={() => setPreviewSprite(null)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Animation Preview Popup */}
+        {showAnimPopup && frames.length > 0 && (
+          <div className="ie-dialog" onClick={() => setShowAnimPopup(false)}>
+            <div
+              className="ie-dialog-content min-w-[400px] max-w-[80vw]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="ie-dialog-header">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">🎬</span>
+                  <span className="ie-dialog-title">Animation Preview</span>
+                </div>
+                <button
+                  onClick={() => setShowAnimPopup(false)}
+                  className="ie-titlebar-btn ie-titlebar-close"
+                >
+                  <span>×</span>
+                </button>
+              </div>
+              <div className="ie-dialog-body">
+                {/* Large Animation Canvas */}
+                <div
+                  className="ie-panel-inset p-4 flex items-center justify-center overflow-auto"
+                  style={{
+                    backgroundImage:
+                      "url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22%3E%3Crect width=%2210%22 height=%2210%22 fill=%22%23ccc%22/%3E%3Crect x=%2210%22 y=%2210%22 width=%2210%22 height=%2210%22 fill=%22%23ccc%22/%3E%3C/svg%3E')",
+                    minHeight: "300px",
+                    maxHeight: "60vh",
+                  }}
+                >
+                  {frames[currentAnimFrame]?.image && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={frames[currentAnimFrame].image!.src}
+                      alt={frames[currentAnimFrame].name}
+                      className="object-contain"
+                      style={{
+                        imageRendering: "pixelated",
+                        minWidth: Math.min(
+                          frames[currentAnimFrame].width * 4,
+                          400
+                        ),
+                        minHeight: Math.min(
+                          frames[currentAnimFrame].height * 4,
+                          400
+                        ),
+                      }}
+                    />
+                  )}
+                </div>
+
+                {/* Frame Info */}
+                <div className="mt-3 text-center">
+                  <span className="ie-panel-inset px-3 py-1 text-sm">
+                    {frames[currentAnimFrame]?.name} — Frame{" "}
+                    {currentAnimFrame + 1} / {frames.length}
+                  </span>
+                </div>
+
+                {/* Playback Controls */}
+                <div className="flex gap-2 justify-center mt-3">
+                  <button
+                    className="ie-button"
+                    onClick={() => stepFrame(-1)}
+                    title="Previous Frame"
+                  >
+                    ⏮️ Prev
+                  </button>
+                  <button
+                    className="ie-button px-4"
+                    onClick={toggleAnimation}
+                    title={isAnimPlaying ? "Pause" : "Play"}
+                  >
+                    {isAnimPlaying ? "⏸️ Pause" : "▶️ Play"}
+                  </button>
+                  <button
+                    className="ie-button"
+                    onClick={() => stepFrame(1)}
+                    title="Next Frame"
+                  >
+                    Next ⏭️
+                  </button>
+                </div>
+
+                {/* FPS Control */}
+                <div className="mt-3">
+                  <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1 text-center">
+                    Speed: {animFps} FPS
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="60"
+                    value={animFps}
+                    onChange={(e) => setAnimFps(parseInt(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+              <div className="ie-dialog-footer">
+                <button
+                  className="ie-button"
+                  onClick={() => setShowAnimPopup(false)}
                 >
                   Close
                 </button>
