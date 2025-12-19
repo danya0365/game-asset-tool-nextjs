@@ -21,8 +21,9 @@ interface QuickAction {
 const features: FeatureCard[] = [
   {
     icon: "🖼️",
-    title: "Texture Editor",
-    description: "สร้างและแก้ไข Texture, รองรับ 9-slice, Seamless preview",
+    title: "Pixel Editor",
+    description: "สร้าง Pixel Art พร้อม Layer, Zoom, Grid",
+    href: "/pixel-editor",
   },
   {
     icon: "🗺️",

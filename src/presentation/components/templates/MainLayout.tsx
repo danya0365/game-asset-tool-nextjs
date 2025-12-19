@@ -5,9 +5,16 @@ import { ComingSoonModal } from "@/src/presentation/components/molecules/ComingS
 import { useComingSoonModal } from "@/src/presentation/hooks/useComingSoonModal";
 import { useState } from "react";
 
+export interface ToolbarAction {
+  action: string;
+  handler: () => void;
+}
+
 interface MainLayoutProps {
   children: React.ReactNode;
   title?: string;
+  toolbarActions?: ToolbarAction[];
+  onMenuAction?: (action: string) => boolean; // return true if handled
 }
 
 interface MenuItem {
@@ -105,6 +112,8 @@ const toolbarButtons = [
 export function MainLayout({
   children,
   title = "Game Asset Tool",
+  toolbarActions,
+  onMenuAction,
 }: MainLayoutProps) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [address] = useState("gat://home");
@@ -121,10 +130,24 @@ export function MainLayout({
 
   const handleMenuItemClick = (itemLabel: string) => {
     setActiveMenu(null);
+    // Check if parent wants to handle this action
+    if (onMenuAction && onMenuAction(itemLabel)) {
+      return;
+    }
     showComingSoon(itemLabel);
   };
 
   const handleToolbarClick = (toolTitle: string) => {
+    // Check if there's a custom handler for this action
+    const customAction = toolbarActions?.find((a) => a.action === toolTitle);
+    if (customAction) {
+      customAction.handler();
+      return;
+    }
+    // Check if parent wants to handle this action
+    if (onMenuAction && onMenuAction(toolTitle)) {
+      return;
+    }
     showComingSoon(toolTitle);
   };
 
