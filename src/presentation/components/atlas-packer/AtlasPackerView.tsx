@@ -170,6 +170,21 @@ export function AtlasPackerView() {
     }
   }, [packedAtlas, getPreviewCanvas]);
 
+  // Auto-pack when settings that affect layout change
+  useEffect(() => {
+    if (frames.length > 0) {
+      packAtlas();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    settings.layoutMode,
+    settings.sortMethod,
+    settings.padding,
+    settings.powerOfTwo,
+    settings.maxWidth,
+    settings.maxHeight,
+  ]);
+
   // Preview zoom handlers
   const handlePreviewWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
@@ -626,41 +641,41 @@ export function AtlasPackerView() {
         {/* Center - Preview */}
         <div className="flex-1 flex flex-col ie-panel m-0.5 lg:m-1 min-w-0 min-h-[300px] lg:min-h-0">
           <div className="ie-groupbox flex-1 flex flex-col min-h-0">
-            <div className="flex items-center justify-between -mb-1">
-              <span className="ie-groupbox-title !mb-0">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="ie-groupbox-title !mb-0 shrink-0">
                 Preview
                 {packedAtlas && (
-                  <span className="text-gray-500 ml-2">
-                    ({packedAtlas.width}x{packedAtlas.height})
+                  <span className="text-gray-500 ml-1 text-xs">
+                    {packedAtlas.width}x{packedAtlas.height}
                   </span>
                 )}
               </span>
               {/* Zoom Controls */}
               {packedAtlas && (
-                <div className="flex items-center gap-1 text-xs">
+                <div className="flex items-center gap-0.5 text-xs shrink-0">
                   <button
-                    className="ie-button ie-button-sm !px-1.5"
+                    className="ie-button ie-button-sm px-1"
                     onClick={zoomOut}
-                    title="Zoom Out"
+                    title="Zoom Out (-)"
                   >
-                    ➖
+                    -
                   </button>
-                  <span className="w-12 text-center text-gray-600 dark:text-gray-300">
+                  <span className="w-10 text-center text-gray-600 dark:text-gray-300 text-[10px]">
                     {Math.round(previewZoom * 100)}%
                   </span>
                   <button
-                    className="ie-button ie-button-sm !px-1.5"
+                    className="ie-button ie-button-sm px-1"
                     onClick={zoomIn}
-                    title="Zoom In"
+                    title="Zoom In (+)"
                   >
-                    ➕
+                    +
                   </button>
                   <button
-                    className="ie-button ie-button-sm !px-1.5"
+                    className="ie-button ie-button-sm px-1 ml-0.5"
                     onClick={resetZoom}
-                    title="Reset Zoom"
+                    title="Reset (1:1)"
                   >
-                    🔄
+                    1:1
                   </button>
                 </div>
               )}
