@@ -174,6 +174,12 @@
 - [x] Clear layer
 - [x] Auto-center canvas on creation
 - [x] Export to JSON
+- [x] Keyboard shortcuts (1-4, B/E/G/I, H, +/-, 0, Space)
+- [x] Right-click to erase
+- [x] Space+drag to pan
+- [x] Tileset palette zoom controls
+- [x] Pixel-perfect rendering (imageSmoothing disabled)
+- [ ] Import JSON
 - [ ] Mini-map preview
 - [ ] Collision layer
 - [ ] Object layer

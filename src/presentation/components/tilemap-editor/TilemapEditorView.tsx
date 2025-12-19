@@ -79,6 +79,12 @@ export function TilemapEditorView() {
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [editingLayerName, setEditingLayerName] = useState("");
 
+  // Space key pan state
+  const [isSpaceDown, setIsSpaceDown] = useState(false);
+
+  // Tileset zoom state
+  const [tilesetZoom, setTilesetZoom] = useState(1);
+
   // Auto-center canvas when tilemap is created
   useEffect(() => {
     if (tilemap && containerRef.current) {
@@ -92,6 +98,68 @@ export function TilemapEditorView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tilemap?.id]);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in input
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      )
+        return;
+
+      switch (e.key.toLowerCase()) {
+        case "1":
+        case "b":
+          setTool("pencil");
+          break;
+        case "2":
+        case "e":
+          setTool("eraser");
+          break;
+        case "3":
+        case "g":
+          setTool("bucket");
+          break;
+        case "4":
+        case "i":
+          setTool("picker");
+          break;
+        case "h":
+          toggleGrid();
+          break;
+        case " ":
+          e.preventDefault();
+          setIsSpaceDown(true);
+          break;
+        case "=":
+        case "+":
+          zoomIn();
+          break;
+        case "-":
+          zoomOut();
+          break;
+        case "0":
+          resetZoom();
+          break;
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === " ") {
+        setIsSpaceDown(false);
+        setIsPanning(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [setTool, toggleGrid, zoomIn, zoomOut, resetZoom]);
+
   // Render tilemap canvas
   useEffect(() => {
     if (!canvasRef.current || !tilemap) return;
@@ -99,6 +167,9 @@ export function TilemapEditorView() {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
+    // Disable image smoothing for pixel art
+    ctx.imageSmoothingEnabled = false;
 
     const canvasWidth = tilemap.width * tilemap.tileWidth;
     const canvasHeight = tilemap.height * tilemap.tileHeight;
@@ -232,10 +303,22 @@ export function TilemapEditorView() {
   // Handle canvas mouse events
   const handleCanvasMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      if (e.button === 1) {
-        // Middle mouse button for panning
+      // Middle mouse button or Space+Left click for panning
+      if (e.button === 1 || (e.button === 0 && isSpaceDown)) {
         setIsPanning(true);
         setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+        return;
+      }
+
+      // Right click to erase
+      if (e.button === 2) {
+        e.preventDefault();
+        const pos = getTilePos(e);
+        if (pos) {
+          setIsDrawing(true);
+          setLastDrawPos(pos);
+          eraseTile(pos.x, pos.y);
+        }
         return;
       }
 
@@ -261,6 +344,7 @@ export function TilemapEditorView() {
       tool,
       selectedTiles,
       pan,
+      isSpaceDown,
       getTilePos,
       paintTile,
       eraseTile,
@@ -302,9 +386,10 @@ export function TilemapEditorView() {
 
       setLastDrawPos(pos);
 
+      // Support right-click drag erase
       if (tool === "pencil" && selectedTiles.length > 0) {
         paintTile(pos.x, pos.y, selectedTiles[0]);
-      } else if (tool === "eraser") {
+      } else if (tool === "eraser" || e.buttons === 2) {
         eraseTile(pos.x, pos.y);
       }
     },
@@ -322,6 +407,11 @@ export function TilemapEditorView() {
       tilemap,
     ]
   );
+
+  // Prevent context menu on canvas
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+  }, []);
 
   const handleCanvasMouseLeave = useCallback(() => {
     setIsPanning(false);
@@ -354,8 +444,9 @@ export function TilemapEditorView() {
       if (!activeTileset || !tilesetCanvasRef.current) return;
 
       const rect = tilesetCanvasRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      // Account for tileset zoom when calculating tile position
+      const x = (e.clientX - rect.left) / tilesetZoom;
+      const y = (e.clientY - rect.top) / tilesetZoom;
 
       const tileX = Math.floor(x / activeTileset.tileWidth);
       const tileY = Math.floor(y / activeTileset.tileHeight);
@@ -365,7 +456,7 @@ export function TilemapEditorView() {
         selectTiles([tileId]);
       }
     },
-    [activeTileset, selectTiles]
+    [activeTileset, selectTiles, tilesetZoom]
   );
 
   // Handle new tilemap creation
@@ -441,12 +532,19 @@ export function TilemapEditorView() {
             <span className="ie-groupbox-title">Tileset</span>
             <div className="ie-panel-inset flex-1 overflow-auto ie-scrollbar -mt-2 bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2210%22%20height%3D%2210%22%3E%3Crect%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%23444%22%2F%3E%3Crect%20x%3D%225%22%20y%3D%225%22%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%23444%22%2F%3E%3C%2Fsvg%3E')]">
               {activeTileset ? (
-                <canvas
-                  ref={tilesetCanvasRef}
-                  className="cursor-pointer"
-                  style={{ imageRendering: "pixelated" }}
-                  onClick={handleTilesetClick}
-                />
+                <div
+                  style={{
+                    transform: `scale(${tilesetZoom})`,
+                    transformOrigin: "0 0",
+                  }}
+                >
+                  <canvas
+                    ref={tilesetCanvasRef}
+                    className="cursor-pointer"
+                    style={{ imageRendering: "pixelated" }}
+                    onClick={handleTilesetClick}
+                  />
+                </div>
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-500 text-xs p-4 text-center">
                   No tileset loaded
@@ -455,19 +553,44 @@ export function TilemapEditorView() {
                 </div>
               )}
             </div>
-            <button
-              className="ie-button ie-button-sm mt-2"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={!tilemap}
-            >
-              📁 Load Tileset
-            </button>
+            {/* Tileset Controls */}
+            <div className="flex gap-1 mt-2">
+              <button
+                className="ie-button ie-button-sm flex-1"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                📁 Load
+              </button>
+              <button
+                className="ie-button ie-button-sm px-1"
+                onClick={() => setTilesetZoom((z) => Math.max(0.5, z - 0.5))}
+                disabled={!activeTileset}
+                title="Zoom Out Tileset"
+              >
+                -
+              </button>
+              <span className="text-xs flex items-center w-8 justify-center">
+                {Math.round(tilesetZoom * 100)}%
+              </span>
+              <button
+                className="ie-button ie-button-sm px-1"
+                onClick={() => setTilesetZoom((z) => Math.min(4, z + 0.5))}
+                disabled={!activeTileset}
+                title="Zoom In Tileset"
+              >
+                +
+              </button>
+            </div>
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
               className="hidden"
               onChange={handleTilesetFileChange}
+              onClick={(e) => {
+                // Reset value to allow selecting the same file again
+                (e.target as HTMLInputElement).value = "";
+              }}
             />
           </div>
 
@@ -690,9 +813,12 @@ export function TilemapEditorView() {
               onMouseUp={handleCanvasMouseUp}
               onMouseLeave={handleCanvasMouseLeave}
               onWheel={handleCanvasWheel}
+              onContextMenu={handleContextMenu}
               style={{
                 cursor: isPanning
                   ? "grabbing"
+                  : isSpaceDown
+                  ? "grab"
                   : tool === "pencil" || tool === "eraser"
                   ? "crosshair"
                   : tool === "bucket"
