@@ -314,9 +314,9 @@ export function AtlasPackerView() {
 
   return (
     <MainLayout title="Atlas Packer - Game Asset Tool">
-      <div className="h-full flex">
+      <div className="h-full flex flex-col lg:flex-row overflow-auto">
         {/* Left Panel - Sprites List */}
-        <div className="w-64 shrink-0 flex flex-col ie-panel m-1">
+        <div className="w-full lg:w-56 xl:w-64 shrink-0 flex flex-col ie-panel m-0.5 lg:m-1">
           <div className="ie-groupbox flex-1 flex flex-col min-h-0">
             <span className="ie-groupbox-title">Sprites ({frames.length})</span>
 
@@ -535,7 +535,7 @@ export function AtlasPackerView() {
         </div>
 
         {/* Center - Preview */}
-        <div className="flex-1 flex flex-col ie-panel m-1 min-w-0">
+        <div className="flex-1 flex flex-col ie-panel m-0.5 lg:m-1 min-w-0 min-h-[300px] lg:min-h-0">
           <div className="ie-groupbox flex-1 flex flex-col min-h-0">
             <span className="ie-groupbox-title">
               Preview
@@ -580,7 +580,7 @@ export function AtlasPackerView() {
         </div>
 
         {/* Right Panel - Settings & Export */}
-        <div className="w-72 shrink-0 flex flex-col ie-panel m-1">
+        <div className="w-full lg:w-60 xl:w-72 shrink-0 flex flex-col ie-panel m-0.5 lg:m-1">
           {/* Settings */}
           <div className="ie-groupbox">
             <span className="ie-groupbox-title">Settings</span>

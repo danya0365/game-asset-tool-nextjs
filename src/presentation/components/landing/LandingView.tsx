@@ -81,11 +81,11 @@ export function LandingView() {
 
   return (
     <MainLayout title="Game Asset Tool - Home">
-      <div className="h-full overflow-auto ie-scrollbar p-4">
+      <div className="h-full overflow-auto ie-scrollbar p-2 md:p-4">
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
-          <div className="ie-panel mb-4">
-            <div className="ie-panel-inset p-6 text-center">
+          <div className="ie-panel mb-2 md:mb-4">
+            <div className="ie-panel-inset p-3 md:p-6 text-center">
               <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">
                 🎮 Game Asset Tool
               </h1>
@@ -98,7 +98,7 @@ export function LandingView() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 md:gap-4">
             {/* Quick Actions */}
             <div className="lg:col-span-1">
               <div className="ie-panel">
@@ -126,7 +126,7 @@ export function LandingView() {
                 </div>
 
                 {/* Recent Projects */}
-                <div className="ie-groupbox mt-4">
+                <div className="ie-groupbox mt-2 md:mt-4">
                   <span className="ie-groupbox-title">Recent Projects</span>
                   <div className="ie-listview -mt-2 max-h-32 overflow-auto ie-scrollbar">
                     <button
@@ -166,7 +166,7 @@ export function LandingView() {
               <div className="ie-panel">
                 <div className="ie-groupbox">
                   <span className="ie-groupbox-title">Features</span>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 -mt-2">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 -mt-2">
                     {features.map((feature) =>
                       feature.href ? (
                         <Link
@@ -203,7 +203,7 @@ export function LandingView() {
               </div>
 
               {/* Export Formats */}
-              <div className="ie-panel mt-4">
+              <div className="ie-panel mt-2 md:mt-4">
                 <div className="ie-groupbox">
                   <span className="ie-groupbox-title">Supported Formats</span>
                   <div className="flex flex-wrap gap-2 -mt-2">
@@ -260,10 +260,10 @@ export function LandingView() {
               </div>
 
               {/* Getting Started */}
-              <div className="ie-panel mt-4">
+              <div className="ie-panel mt-2 md:mt-4">
                 <div className="ie-groupbox">
                   <span className="ie-groupbox-title">Getting Started</span>
-                  <div className="ie-panel-inset p-3 -mt-2">
+                  <div className="ie-panel-inset p-2 md:p-3 -mt-2">
                     <ol className="list-decimal list-inside text-xs space-y-1 text-gray-700 dark:text-gray-300">
                       <li>สร้าง Project ใหม่หรือเปิด Project ที่มีอยู่</li>
                       <li>Import รูปภาพหรือสร้าง Asset ใหม่ด้วย Editor</li>
@@ -291,8 +291,8 @@ export function LandingView() {
           </div>
 
           {/* Footer Info */}
-          <div className="ie-panel mt-4">
-            <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
+          <div className="ie-panel mt-2 md:mt-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-1 px-2 md:px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
               <span>Game Asset Tool v0.1.0</span>
               <span>Made with ❤️ for Game Developers</span>
               <span>© 2024</span>
