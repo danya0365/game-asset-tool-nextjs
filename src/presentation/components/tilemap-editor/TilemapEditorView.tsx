@@ -1,6 +1,7 @@
 "use client";
 
 import { TILE_SIZES } from "@/src/domain/types/tilemap";
+import { Portal } from "@/src/presentation/components/atoms/Portal";
 import { MainLayout } from "@/src/presentation/components/templates/MainLayout";
 import { useTilemapEditor } from "@/src/presentation/hooks/useTilemapEditor";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -950,161 +951,169 @@ export function TilemapEditorView() {
 
       {/* New Tilemap Dialog */}
       {showNewDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="ie-window w-80">
-            <div className="ie-titlebar">
-              <span className="ie-titlebar-text">New Tilemap</span>
-              <button
-                className="ie-titlebar-btn ie-titlebar-close"
-                onClick={() => setShowNewDialog(false)}
-              >
-                <span>×</span>
-              </button>
-            </div>
-            <div className="ie-window-body p-3 space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs block mb-1">Width (tiles)</label>
-                  <input
-                    type="number"
-                    className="ie-input w-full"
-                    value={newMapWidth}
-                    onChange={(e) =>
-                      setNewMapWidth(parseInt(e.target.value) || 1)
-                    }
-                    min={1}
-                    max={100}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs block mb-1">Height (tiles)</label>
-                  <input
-                    type="number"
-                    className="ie-input w-full"
-                    value={newMapHeight}
-                    onChange={(e) =>
-                      setNewMapHeight(parseInt(e.target.value) || 1)
-                    }
-                    min={1}
-                    max={100}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs block mb-1">Tile Size</label>
-                <select
-                  className="ie-input w-full"
-                  value={newTileSize}
-                  onChange={(e) => setNewTileSize(parseInt(e.target.value))}
-                >
-                  {TILE_SIZES.map((size) => (
-                    <option key={size} value={size}>
-                      {size}x{size} px
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex justify-end gap-2">
+        <Portal>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="ie-window w-80">
+              <div className="ie-titlebar">
+                <span className="ie-titlebar-text">New Tilemap</span>
                 <button
-                  className="ie-button"
+                  className="ie-titlebar-btn ie-titlebar-close"
                   onClick={() => setShowNewDialog(false)}
                 >
-                  Cancel
+                  <span>×</span>
                 </button>
-                <button className="ie-button" onClick={handleCreateTilemap}>
-                  Create
-                </button>
+              </div>
+              <div className="ie-window-body p-3 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs block mb-1">Width (tiles)</label>
+                    <input
+                      type="number"
+                      className="ie-input w-full"
+                      value={newMapWidth}
+                      onChange={(e) =>
+                        setNewMapWidth(parseInt(e.target.value) || 1)
+                      }
+                      min={1}
+                      max={100}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs block mb-1">Height (tiles)</label>
+                    <input
+                      type="number"
+                      className="ie-input w-full"
+                      value={newMapHeight}
+                      onChange={(e) =>
+                        setNewMapHeight(parseInt(e.target.value) || 1)
+                      }
+                      min={1}
+                      max={100}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs block mb-1">Tile Size</label>
+                  <select
+                    className="ie-input w-full"
+                    value={newTileSize}
+                    onChange={(e) => setNewTileSize(parseInt(e.target.value))}
+                  >
+                    {TILE_SIZES.map((size) => (
+                      <option key={size} value={size}>
+                        {size}x{size} px
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    className="ie-button"
+                    onClick={() => setShowNewDialog(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button className="ie-button" onClick={handleCreateTilemap}>
+                    Create
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
 
       {/* Tileset Import Dialog */}
       {showTilesetDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="ie-window w-96">
-            <div className="ie-titlebar">
-              <span className="ie-titlebar-text">Import Tileset</span>
-              <button
-                className="ie-titlebar-btn ie-titlebar-close"
-                onClick={() => {
-                  setShowTilesetDialog(false);
-                  setTilesetFile(null);
-                  setTilesetPreviewUrl(null);
-                }}
-              >
-                <span>×</span>
-              </button>
-            </div>
-            <div className="ie-window-body p-3 space-y-3">
-              {/* Preview */}
-              {tilesetPreviewUrl && (
-                <div className="ie-panel-inset p-2 max-h-48 overflow-auto bg-[#1a1a2e]">
-                  <img
-                    src={tilesetPreviewUrl}
-                    alt="Tileset preview"
-                    className="max-w-full"
-                    style={{ imageRendering: "pixelated" }}
-                  />
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs block mb-1">Tile Width (px)</label>
-                  <select
-                    className="ie-input w-full"
-                    value={tilesetTileWidth}
-                    onChange={(e) =>
-                      setTilesetTileWidth(parseInt(e.target.value))
-                    }
-                  >
-                    {TILE_SIZES.map((size) => (
-                      <option key={size} value={size}>
-                        {size}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs block mb-1">Tile Height (px)</label>
-                  <select
-                    className="ie-input w-full"
-                    value={tilesetTileHeight}
-                    onChange={(e) =>
-                      setTilesetTileHeight(parseInt(e.target.value))
-                    }
-                  >
-                    {TILE_SIZES.map((size) => (
-                      <option key={size} value={size}>
-                        {size}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
+        <Portal>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="ie-window w-96">
+              <div className="ie-titlebar">
+                <span className="ie-titlebar-text">Import Tileset</span>
                 <button
-                  className="ie-button"
+                  className="ie-titlebar-btn ie-titlebar-close"
                   onClick={() => {
                     setShowTilesetDialog(false);
                     setTilesetFile(null);
                     setTilesetPreviewUrl(null);
                   }}
                 >
-                  Cancel
+                  <span>×</span>
                 </button>
-                <button
-                  className="ie-button"
-                  onClick={handleImportTileset}
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Loading..." : "Import"}
-                </button>
+              </div>
+              <div className="ie-window-body p-3 space-y-3">
+                {/* Preview */}
+                {tilesetPreviewUrl && (
+                  <div className="ie-panel-inset p-2 max-h-48 overflow-auto bg-[#1a1a2e]">
+                    <img
+                      src={tilesetPreviewUrl}
+                      alt="Tileset preview"
+                      className="max-w-full"
+                      style={{ imageRendering: "pixelated" }}
+                    />
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs block mb-1">
+                      Tile Width (px)
+                    </label>
+                    <select
+                      className="ie-input w-full"
+                      value={tilesetTileWidth}
+                      onChange={(e) =>
+                        setTilesetTileWidth(parseInt(e.target.value))
+                      }
+                    >
+                      {TILE_SIZES.map((size) => (
+                        <option key={size} value={size}>
+                          {size}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs block mb-1">
+                      Tile Height (px)
+                    </label>
+                    <select
+                      className="ie-input w-full"
+                      value={tilesetTileHeight}
+                      onChange={(e) =>
+                        setTilesetTileHeight(parseInt(e.target.value))
+                      }
+                    >
+                      {TILE_SIZES.map((size) => (
+                        <option key={size} value={size}>
+                          {size}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    className="ie-button"
+                    onClick={() => {
+                      setShowTilesetDialog(false);
+                      setTilesetFile(null);
+                      setTilesetPreviewUrl(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="ie-button"
+                    onClick={handleImportTileset}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Loading..." : "Import"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
     </MainLayout>
   );
