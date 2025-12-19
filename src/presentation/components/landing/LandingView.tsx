@@ -29,6 +29,7 @@ const features: FeatureCard[] = [
     icon: "🗺️",
     title: "Tilemap Editor",
     description: "สร้าง Tilemap แบบ Layer-based พร้อม Auto-tile",
+    href: "/tilemap-editor",
   },
   {
     icon: "🎬",

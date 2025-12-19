@@ -125,13 +125,16 @@
 - [ ] Manual arrangement
 - [x] Padding/Spacing settings
 - [x] Power of 2 sizing option
-- [ ] Trim transparency option
-- [x] Preview packed result
+- [x] Trim transparency option (per sprite & trim all)
+- [x] Preview packed result with zoom/pan controls
 - [x] Sprite strip import (auto-detect frames)
 - [x] Animation preview with FPS control
 - [x] Drag & drop support
 - [x] Image file validation
 - [x] Export to multiple formats (JSON, Cocos, Phaser, Unity, CSS)
+- [x] Layout modes (Optimal, Horizontal Strip, Vertical Strip, Grid)
+- [x] Sort methods (Name, Width, Height, Area, Perimeter)
+- [x] Auto-pack on settings change
 
 ---
 
