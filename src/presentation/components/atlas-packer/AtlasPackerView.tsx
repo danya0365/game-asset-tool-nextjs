@@ -35,8 +35,15 @@ export function AtlasPackerView() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState("json-hash");
+
+  // Preview Zoom & Pan State
+  const [previewZoom, setPreviewZoom] = useState(1);
+  const [previewPan, setPreviewPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [previewSprite, setPreviewSprite] = useState<{
     id: string;
     name: string;
@@ -157,8 +164,64 @@ export function AtlasPackerView() {
           }
         }
       });
+      // Reset zoom/pan when atlas changes
+      setPreviewZoom(1);
+      setPreviewPan({ x: 0, y: 0 });
     }
   }, [packedAtlas, getPreviewCanvas]);
+
+  // Preview zoom handlers
+  const handlePreviewWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    setPreviewZoom((prev) => Math.max(0.1, Math.min(10, prev + delta)));
+  }, []);
+
+  const handlePreviewMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.button === 0 || e.button === 1) {
+        setIsPanning(true);
+        setPanStart({
+          x: e.clientX - previewPan.x,
+          y: e.clientY - previewPan.y,
+        });
+      }
+    },
+    [previewPan]
+  );
+
+  const handlePreviewMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (isPanning) {
+        setPreviewPan({
+          x: e.clientX - panStart.x,
+          y: e.clientY - panStart.y,
+        });
+      }
+    },
+    [isPanning, panStart]
+  );
+
+  const handlePreviewMouseUp = useCallback(() => {
+    setIsPanning(false);
+  }, []);
+
+  const handlePreviewMouseLeave = useCallback(() => {
+    setIsPanning(false);
+  }, []);
+
+  const zoomIn = useCallback(() => {
+    setPreviewZoom((prev) => Math.min(10, prev + 0.25));
+  }, []);
+
+  const zoomOut = useCallback(() => {
+    setPreviewZoom((prev) => Math.max(0.1, prev - 0.25));
+  }, []);
+
+  const resetZoom = useCallback(() => {
+    setPreviewZoom(1);
+    setPreviewPan({ x: 0, y: 0 });
+  }, []);
 
   // Animation loop
   useEffect(() => {
@@ -563,30 +626,82 @@ export function AtlasPackerView() {
         {/* Center - Preview */}
         <div className="flex-1 flex flex-col ie-panel m-0.5 lg:m-1 min-w-0 min-h-[300px] lg:min-h-0">
           <div className="ie-groupbox flex-1 flex flex-col min-h-0">
-            <span className="ie-groupbox-title">
-              Preview
+            <div className="flex items-center justify-between -mb-1">
+              <span className="ie-groupbox-title !mb-0">
+                Preview
+                {packedAtlas && (
+                  <span className="text-gray-500 ml-2">
+                    ({packedAtlas.width}x{packedAtlas.height})
+                  </span>
+                )}
+              </span>
+              {/* Zoom Controls */}
               {packedAtlas && (
-                <span className="text-gray-500 ml-2">
-                  ({packedAtlas.width}x{packedAtlas.height})
-                </span>
+                <div className="flex items-center gap-1 text-xs">
+                  <button
+                    className="ie-button ie-button-sm !px-1.5"
+                    onClick={zoomOut}
+                    title="Zoom Out"
+                  >
+                    ➖
+                  </button>
+                  <span className="w-12 text-center text-gray-600 dark:text-gray-300">
+                    {Math.round(previewZoom * 100)}%
+                  </span>
+                  <button
+                    className="ie-button ie-button-sm !px-1.5"
+                    onClick={zoomIn}
+                    title="Zoom In"
+                  >
+                    ➕
+                  </button>
+                  <button
+                    className="ie-button ie-button-sm !px-1.5"
+                    onClick={resetZoom}
+                    title="Reset Zoom"
+                  >
+                    🔄
+                  </button>
+                </div>
               )}
-            </span>
+            </div>
 
             {/* Canvas Preview */}
-            <div className="ie-panel-inset flex-1 overflow-auto ie-scrollbar flex items-center justify-center -mt-2 bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%3E%3Crect%20width%3D%2210%22%20height%3D%2210%22%20fill%3D%22%23ccc%22%2F%3E%3Crect%20x%3D%2210%22%20y%3D%2210%22%20width%3D%2210%22%20height%3D%2210%22%20fill%3D%22%23ccc%22%2F%3E%3C%2Fsvg%3E')]">
+            <div
+              ref={previewContainerRef}
+              className="ie-panel-inset flex-1 overflow-hidden relative -mt-2 bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%3E%3Crect%20width%3D%2210%22%20height%3D%2210%22%20fill%3D%22%23ccc%22%2F%3E%3Crect%20x%3D%2210%22%20y%3D%2210%22%20width%3D%2210%22%20height%3D%2210%22%20fill%3D%22%23ccc%22%2F%3E%3C%2Fsvg%3E')]"
+              onWheel={handlePreviewWheel}
+              onMouseDown={handlePreviewMouseDown}
+              onMouseMove={handlePreviewMouseMove}
+              onMouseUp={handlePreviewMouseUp}
+              onMouseLeave={handlePreviewMouseLeave}
+              style={{ cursor: isPanning ? "grabbing" : "grab" }}
+            >
               {packedAtlas ? (
-                <canvas
-                  ref={previewCanvasRef}
-                  className="max-w-full max-h-full"
-                  style={{ imageRendering: "pixelated" }}
-                />
+                <div
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{
+                    transform: `translate(${previewPan.x}px, ${previewPan.y}px)`,
+                  }}
+                >
+                  <canvas
+                    ref={previewCanvasRef}
+                    style={{
+                      imageRendering: "pixelated",
+                      transform: `scale(${previewZoom})`,
+                      transformOrigin: "center center",
+                    }}
+                  />
+                </div>
               ) : (
-                <div className="text-center text-gray-500 dark:text-gray-400">
-                  <div className="text-4xl mb-2">📦</div>
-                  <div className="text-xs">
-                    Add sprites and click &quot;Pack Atlas&quot;
-                    <br />
-                    to see the preview
+                <div className="absolute inset-0 flex items-center justify-center text-center text-gray-500 dark:text-gray-400">
+                  <div>
+                    <div className="text-4xl mb-2">📦</div>
+                    <div className="text-xs">
+                      Add sprites and click &quot;Pack Atlas&quot;
+                      <br />
+                      to see the preview
+                    </div>
                   </div>
                 </div>
               )}
