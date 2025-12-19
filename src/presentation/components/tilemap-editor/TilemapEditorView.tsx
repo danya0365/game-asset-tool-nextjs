@@ -30,8 +30,12 @@ export function TilemapEditorView() {
     pickTile,
     setTool,
     toggleGrid,
+    renameLayer,
+    clearLayer,
+    moveLayer,
     zoomIn,
     zoomOut,
+    resetZoom,
     setPan,
     clearError,
     exportToJson,
@@ -64,6 +68,29 @@ export function TilemapEditorView() {
   const [tilesetPreviewUrl, setTilesetPreviewUrl] = useState<string | null>(
     null
   );
+
+  // Hover position state
+  const [hoverTilePos, setHoverTilePos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+
+  // Layer rename state
+  const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
+  const [editingLayerName, setEditingLayerName] = useState("");
+
+  // Auto-center canvas when tilemap is created
+  useEffect(() => {
+    if (tilemap && containerRef.current) {
+      const container = containerRef.current;
+      const canvasWidth = tilemap.width * tilemap.tileWidth;
+      const canvasHeight = tilemap.height * tilemap.tileHeight;
+      const centerX = (container.clientWidth - canvasWidth * zoom) / 2;
+      const centerY = (container.clientHeight - canvasHeight * zoom) / 2;
+      setPan({ x: Math.max(0, centerX), y: Math.max(0, centerY) });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tilemap?.id]);
 
   // Render tilemap canvas
   useEffect(() => {
@@ -244,6 +271,21 @@ export function TilemapEditorView() {
 
   const handleCanvasMouseMove = useCallback(
     (e: React.MouseEvent) => {
+      // Always update hover position
+      const pos = getTilePos(e);
+      if (pos && tilemap) {
+        if (
+          pos.x >= 0 &&
+          pos.x < tilemap.width &&
+          pos.y >= 0 &&
+          pos.y < tilemap.height
+        ) {
+          setHoverTilePos(pos);
+        } else {
+          setHoverTilePos(null);
+        }
+      }
+
       if (isPanning) {
         setPan({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
         return;
@@ -251,7 +293,6 @@ export function TilemapEditorView() {
 
       if (!isDrawing) return;
 
-      const pos = getTilePos(e);
       if (
         !pos ||
         (lastDrawPos && pos.x === lastDrawPos.x && pos.y === lastDrawPos.y)
@@ -278,8 +319,16 @@ export function TilemapEditorView() {
       paintTile,
       eraseTile,
       setPan,
+      tilemap,
     ]
   );
+
+  const handleCanvasMouseLeave = useCallback(() => {
+    setIsPanning(false);
+    setIsDrawing(false);
+    setLastDrawPos(null);
+    setHoverTilePos(null);
+  }, []);
 
   const handleCanvasMouseUp = useCallback(() => {
     setIsPanning(false);
@@ -425,8 +474,8 @@ export function TilemapEditorView() {
           {/* Layers Panel */}
           <div className="ie-groupbox mt-1">
             <span className="ie-groupbox-title">Layers</span>
-            <div className="ie-panel-inset max-h-32 overflow-auto ie-scrollbar -mt-2">
-              {tilemap?.layers.map((layer) => (
+            <div className="ie-panel-inset max-h-40 overflow-auto ie-scrollbar -mt-2">
+              {tilemap?.layers.map((layer, index) => (
                 <div
                   key={layer.id}
                   className={`flex items-center gap-1 p-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 ${
@@ -437,26 +486,89 @@ export function TilemapEditorView() {
                   onClick={() => setActiveLayer(layer.id)}
                 >
                   <button
-                    className="text-xs"
+                    className="text-xs opacity-70 hover:opacity-100"
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleLayerVisibility(layer.id);
                     }}
+                    title={layer.visible ? "Hide" : "Show"}
                   >
                     {layer.visible ? "👁️" : "🚫"}
                   </button>
-                  <span className="flex-1 text-xs truncate">{layer.name}</span>
-                  {tilemap.layers.length > 1 && (
+                  {editingLayerId === layer.id ? (
+                    <input
+                      type="text"
+                      className="ie-input flex-1 text-xs py-0"
+                      value={editingLayerName}
+                      onChange={(e) => setEditingLayerName(e.target.value)}
+                      onBlur={() => {
+                        if (editingLayerName.trim()) {
+                          renameLayer(layer.id, editingLayerName.trim());
+                        }
+                        setEditingLayerId(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          if (editingLayerName.trim()) {
+                            renameLayer(layer.id, editingLayerName.trim());
+                          }
+                          setEditingLayerId(null);
+                        } else if (e.key === "Escape") {
+                          setEditingLayerId(null);
+                        }
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      autoFocus
+                    />
+                  ) : (
+                    <span
+                      className="flex-1 text-xs truncate"
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        setEditingLayerId(layer.id);
+                        setEditingLayerName(layer.name);
+                      }}
+                      title="Double-click to rename"
+                    >
+                      {layer.name}
+                    </span>
+                  )}
+                  <div className="flex gap-0.5">
                     <button
-                      className="text-xs text-red-500 hover:text-red-700"
+                      className="text-xs opacity-50 hover:opacity-100 disabled:opacity-20"
                       onClick={(e) => {
                         e.stopPropagation();
-                        removeLayer(layer.id);
+                        moveLayer(layer.id, "up");
                       }}
+                      disabled={index === 0}
+                      title="Move Up"
                     >
-                      ×
+                      ▲
                     </button>
-                  )}
+                    <button
+                      className="text-xs opacity-50 hover:opacity-100 disabled:opacity-20"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        moveLayer(layer.id, "down");
+                      }}
+                      disabled={index === tilemap.layers.length - 1}
+                      title="Move Down"
+                    >
+                      ▼
+                    </button>
+                    {tilemap.layers.length > 1 && (
+                      <button
+                        className="text-xs text-red-500 opacity-50 hover:opacity-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeLayer(layer.id);
+                        }}
+                        title="Delete Layer"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -469,6 +581,14 @@ export function TilemapEditorView() {
                 disabled={!tilemap}
               >
                 + Add
+              </button>
+              <button
+                className="ie-button ie-button-sm"
+                onClick={() => activeLayer && clearLayer(activeLayer)}
+                disabled={!activeLayer}
+                title="Clear Layer"
+              >
+                🗑️
               </button>
             </div>
           </div>
@@ -545,7 +665,20 @@ export function TilemapEditorView() {
                 >
                   +
                 </button>
+                <button
+                  className="ie-button ie-button-sm px-1 ml-1"
+                  onClick={resetZoom}
+                  title="Reset View (1:1)"
+                >
+                  1:1
+                </button>
               </div>
+              {/* Cursor Position */}
+              {hoverTilePos && (
+                <span className="text-xs text-gray-500 ml-2">
+                  X: {hoverTilePos.x}, Y: {hoverTilePos.y}
+                </span>
+              )}
             </div>
 
             {/* Canvas Container */}
@@ -555,13 +688,17 @@ export function TilemapEditorView() {
               onMouseDown={handleCanvasMouseDown}
               onMouseMove={handleCanvasMouseMove}
               onMouseUp={handleCanvasMouseUp}
-              onMouseLeave={handleCanvasMouseUp}
+              onMouseLeave={handleCanvasMouseLeave}
               onWheel={handleCanvasWheel}
               style={{
                 cursor: isPanning
                   ? "grabbing"
-                  : tool === "pencil"
+                  : tool === "pencil" || tool === "eraser"
                   ? "crosshair"
+                  : tool === "bucket"
+                  ? "cell"
+                  : tool === "picker"
+                  ? "copy"
                   : "default",
               }}
             >
@@ -617,15 +754,50 @@ export function TilemapEditorView() {
             </div>
           </div>
 
-          {/* Selected Tile Info */}
+          {/* Selected Tile Preview */}
           {selectedTiles.length > 0 && activeTileset && (
             <div className="ie-groupbox mt-1">
               <span className="ie-groupbox-title">Selected Tile</span>
-              <div className="text-xs -mt-2">
-                <div>ID: {selectedTiles[0]}</div>
-                <div>
-                  Position: {selectedTiles[0] % activeTileset.columns},{" "}
-                  {Math.floor(selectedTiles[0] / activeTileset.columns)}
+              <div className="-mt-2">
+                {/* Tile Preview */}
+                <div className="flex justify-center mb-2">
+                  <div
+                    className="border border-green-500 bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%228%22%20height%3D%228%22%3E%3Crect%20width%3D%224%22%20height%3D%224%22%20fill%3D%22%23444%22%2F%3E%3Crect%20x%3D%224%22%20y%3D%224%22%20width%3D%224%22%20height%3D%224%22%20fill%3D%22%23444%22%2F%3E%3C%2Fsvg%3E')]"
+                    style={{
+                      width: activeTileset.tileWidth * 3,
+                      height: activeTileset.tileHeight * 3,
+                      backgroundImage: activeTileset.image
+                        ? `url(${activeTileset.imageUrl})`
+                        : undefined,
+                      backgroundPosition: `-${
+                        (selectedTiles[0] % activeTileset.columns) *
+                        activeTileset.tileWidth *
+                        3
+                      }px -${
+                        Math.floor(selectedTiles[0] / activeTileset.columns) *
+                        activeTileset.tileHeight *
+                        3
+                      }px`,
+                      backgroundSize: `${
+                        activeTileset.image?.width
+                          ? activeTileset.image.width * 3
+                          : 0
+                      }px ${
+                        activeTileset.image?.height
+                          ? activeTileset.image.height * 3
+                          : 0
+                      }px`,
+                      imageRendering: "pixelated",
+                    }}
+                  />
+                </div>
+                {/* Tile Info */}
+                <div className="text-xs text-center text-gray-600 dark:text-gray-400">
+                  <div>ID: {selectedTiles[0]}</div>
+                  <div>
+                    Grid: ({selectedTiles[0] % activeTileset.columns},{" "}
+                    {Math.floor(selectedTiles[0] / activeTileset.columns)})
+                  </div>
                 </div>
               </div>
             </div>

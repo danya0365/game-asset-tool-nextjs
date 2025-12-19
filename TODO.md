@@ -138,23 +138,25 @@
 
 ---
 
-## Phase 4: Tilemap & Tileset Editor
+## Phase 4: Tilemap & Tileset Editor ✅ (Basic Implementation)
 
 ### 4.1 Tileset Management
 
-- [ ] Import tileset image
-- [ ] Define tile size (8x8, 16x16, 32x32, custom)
-- [ ] Auto-slice tileset
-- [ ] Manual tile selection
+- [x] Import tileset image
+- [x] Define tile size (8x8, 16x16, 32x32, 64x64)
+- [x] Auto-slice tileset
+- [x] Manual tile selection
 - [ ] Tile metadata (collision, animation, tags)
-- [ ] Tileset preview
+- [x] Tileset preview with grid
 
 ### 4.2 Tilemap Editor
 
-- [ ] Create new tilemap (grid size)
-- [ ] Multiple tilemap layers
-- [ ] Paint tiles on map
-- [ ] Bucket fill for tiles
+- [x] Create new tilemap (grid size)
+- [x] Multiple tilemap layers
+- [x] Paint tiles on map (Pencil tool)
+- [x] Eraser tool
+- [x] Bucket fill for tiles
+- [x] Tile picker tool
 - [ ] Rectangle select tiles
 - [ ] Copy/Paste tile regions
 - [ ] Auto-tile rules (terrain matching)
@@ -162,6 +164,16 @@
 
 ### 4.3 Tilemap Features
 
+- [x] Zoom & Pan controls
+- [x] Grid toggle
+- [x] Reset view (1:1)
+- [x] Hover position indicator
+- [x] Selected tile preview (3x scale)
+- [x] Layer management (add, remove, rename, reorder)
+- [x] Layer visibility toggle
+- [x] Clear layer
+- [x] Auto-center canvas on creation
+- [x] Export to JSON
 - [ ] Mini-map preview
 - [ ] Collision layer
 - [ ] Object layer

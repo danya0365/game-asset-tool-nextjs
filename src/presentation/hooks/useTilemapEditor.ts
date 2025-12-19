@@ -353,6 +353,63 @@ export function useTilemapEditor() {
     setState((prev) => ({ ...prev, showGrid: !prev.showGrid }));
   }, []);
 
+  // Rename layer
+  const renameLayer = useCallback((layerId: string, newName: string) => {
+    setState((prev) => {
+      if (!prev.tilemap) return prev;
+      return {
+        ...prev,
+        tilemap: {
+          ...prev.tilemap,
+          layers: prev.tilemap.layers.map((l) =>
+            l.id === layerId ? { ...l, name: newName } : l
+          ),
+        },
+      };
+    });
+  }, []);
+
+  // Clear layer (fill with empty tiles)
+  const clearLayer = useCallback((layerId: string) => {
+    setState((prev) => {
+      if (!prev.tilemap) return prev;
+      return {
+        ...prev,
+        tilemap: {
+          ...prev.tilemap,
+          layers: prev.tilemap.layers.map((l) =>
+            l.id === layerId
+              ? {
+                  ...l,
+                  data: createEmptyLayerData(
+                    prev.tilemap!.width,
+                    prev.tilemap!.height
+                  ),
+                }
+              : l
+          ),
+        },
+      };
+    });
+  }, []);
+
+  // Move layer up/down
+  const moveLayer = useCallback((layerId: string, direction: "up" | "down") => {
+    setState((prev) => {
+      if (!prev.tilemap) return prev;
+      const layers = [...prev.tilemap.layers];
+      const index = layers.findIndex((l) => l.id === layerId);
+      if (index === -1) return prev;
+      const newIndex = direction === "up" ? index - 1 : index + 1;
+      if (newIndex < 0 || newIndex >= layers.length) return prev;
+      [layers[index], layers[newIndex]] = [layers[newIndex], layers[index]];
+      return {
+        ...prev,
+        tilemap: { ...prev.tilemap, layers },
+      };
+    });
+  }, []);
+
   // Zoom controls
   const setZoom = useCallback((zoom: number) => {
     setState((prev) => ({ ...prev, zoom: Math.max(0.25, Math.min(4, zoom)) }));
@@ -364,6 +421,10 @@ export function useTilemapEditor() {
 
   const zoomOut = useCallback(() => {
     setState((prev) => ({ ...prev, zoom: Math.max(0.25, prev.zoom - 0.25) }));
+  }, []);
+
+  const resetZoom = useCallback(() => {
+    setState((prev) => ({ ...prev, zoom: 1, pan: { x: 0, y: 0 } }));
   }, []);
 
   // Pan controls
@@ -456,9 +517,13 @@ export function useTilemapEditor() {
     pickTile,
     setTool,
     toggleGrid,
+    renameLayer,
+    clearLayer,
+    moveLayer,
     setZoom,
     zoomIn,
     zoomOut,
+    resetZoom,
     setPan,
     clearError,
     exportToJson,
