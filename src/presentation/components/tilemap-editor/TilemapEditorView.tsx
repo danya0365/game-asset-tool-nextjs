@@ -953,7 +953,7 @@ export function TilemapEditorView() {
       {showNewDialog && (
         <Portal>
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="ie-window w-80">
+            <div className="ie-window w-80 h-fit">
               <div className="ie-titlebar">
                 <span className="ie-titlebar-text">New Tilemap</span>
                 <button
@@ -1027,7 +1027,7 @@ export function TilemapEditorView() {
       {showTilesetDialog && (
         <Portal>
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="ie-window w-96">
+            <div className="ie-window w-96 h-fit">
               <div className="ie-titlebar">
                 <span className="ie-titlebar-text">Import Tileset</span>
                 <button
