@@ -314,7 +314,7 @@ export function AtlasPackerView() {
 
   return (
     <MainLayout title="Atlas Packer - Game Asset Tool">
-      <div className="h-full flex flex-col lg:flex-row overflow-auto">
+      <div className="h-full flex flex-col lg:flex-row overflow-auto ie-scrollbar">
         {/* Left Panel - Sprites List */}
         <div className="w-full lg:w-56 xl:w-64 shrink-0 flex flex-col ie-panel m-0.5 lg:m-1">
           <div className="ie-groupbox flex-1 flex flex-col min-h-0">

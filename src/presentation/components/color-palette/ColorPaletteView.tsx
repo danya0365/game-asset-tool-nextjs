@@ -63,7 +63,7 @@ export function ColorPaletteView() {
 
   return (
     <MainLayout title="Color Palette - Game Asset Tool">
-      <div className="h-full flex flex-col lg:flex-row overflow-auto">
+      <div className="h-full flex flex-col lg:flex-row overflow-auto ie-scrollbar">
         {/* Left Panel - Color Picker */}
         <div className="w-full lg:w-72 xl:w-80 shrink-0 flex flex-col ie-panel m-0.5 lg:m-1">
           <div className="ie-groupbox flex-1 flex flex-col">
