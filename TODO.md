@@ -47,48 +47,54 @@
 
 ---
 
-## Phase 2: Core Editor Framework 🔄 (Current)
+## Phase 2: Core Editor Framework ✅ (Completed)
 
-### 2.1 Canvas System
+### 2.1 Canvas System ✅
 
-- [ ] HTML5 Canvas wrapper component
-- [ ] Zoom in/out functionality
-- [ ] Pan/scroll navigation
-- [ ] Grid overlay toggle
-- [ ] Pixel-perfect rendering
-- [ ] Canvas resize handling
+- [x] HTML5 Canvas wrapper component
+- [x] Zoom in/out functionality
+- [x] Pan/scroll navigation (middle mouse)
+- [x] Grid overlay toggle
+- [x] Pixel-perfect rendering
+- [x] Canvas resize handling
 
-### 2.2 Tool System
+### 2.2 Tool System ✅
 
-- [ ] Tool registry (Plugin-based)
+- [x] Tool registry (Pencil, Eraser, Fill, Picker)
 - [ ] Selection tool (Rectangle, Lasso, Magic Wand)
-- [ ] Pencil/Brush tool
-- [ ] Eraser tool
+- [x] Pencil/Brush tool with click-drag drawing
+- [x] Eraser tool
 - [ ] Fill (Bucket) tool
-- [ ] Color picker (Eyedropper)
+- [x] Color picker (Eyedropper)
 - [ ] Move tool
-- [ ] Zoom tool
-- [ ] Hand tool (Pan)
+- [x] Zoom tool (scroll wheel)
+- [x] Hand tool (Pan - middle mouse)
 
 ### 2.3 Color System ✅ (Completed in Color Palette Tool)
 
 - [x] Color palette panel
-- [ ] Primary/Secondary color selector
+- [x] Primary/Secondary color selector
 - [x] RGB/HSV/HEX color picker
 - [ ] Color history
 - [x] Import/Export palettes (.pal, .gpl, .ase)
 - [x] Popular game palettes (NES, SNES, GB, etc.)
 
-### 2.4 Layer System
+### 2.4 Layer System ✅
 
-- [ ] Layer panel
-- [ ] Add/Remove layers
-- [ ] Layer visibility toggle
-- [ ] Layer opacity
+- [x] Layer panel
+- [x] Add/Remove layers
+- [x] Layer visibility toggle
+- [x] Layer opacity
 - [ ] Layer blending modes
-- [ ] Layer reordering (drag & drop)
+- [x] Layer reordering
 - [ ] Layer grouping
 - [ ] Merge layers
+
+### 2.5 History System ✅
+
+- [x] Undo/Redo functionality
+- [x] History stack (50 states)
+- [x] Menu and Toolbar integration
 
 ---
 
@@ -419,11 +425,17 @@ src/
 3. ✅ Save/Load palettes
 4. ✅ Popular game palettes (NES, SNES, GB)
 
-**Sprint 4: Core Editor Framework** 🔄 Current
+**Sprint 4: Core Editor Framework** ✅ Completed
 
-1. 🔄 Canvas System (wrapper, zoom, pan, grid)
-2. 🔄 Tool System (registry, basic tools)
-3. 🔄 Layer System (panel, add/remove, visibility)
+1. ✅ Canvas System (wrapper, zoom, pan, grid)
+2. ✅ Tool System (pencil, eraser, picker)
+3. ✅ Layer System (panel, add/remove, visibility, opacity)
+4. ✅ History System (undo/redo)
+5. ✅ Export PNG
+
+**Sprint 5: Atlas Packer Enhancements** 🔄 Current
+
+1. 🔄 Trim transparent pixels per sprite
 
 ---
 

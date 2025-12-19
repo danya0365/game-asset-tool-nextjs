@@ -265,6 +265,183 @@ export function useAtlasPacker() {
     }));
   }, []);
 
+  // Trim transparent pixels from a frame
+  const trimFrame = useCallback((id: string) => {
+    setState((prev) => {
+      const frameIndex = prev.frames.findIndex((f) => f.id === id);
+      if (frameIndex === -1) return prev;
+
+      const frame = prev.frames[frameIndex];
+      if (!frame.image) return prev;
+
+      // Create canvas to analyze pixels
+      const canvas = document.createElement("canvas");
+      canvas.width = frame.image.width;
+      canvas.height = frame.image.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return prev;
+
+      ctx.drawImage(frame.image, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const { data, width, height } = imageData;
+
+      // Find bounding box of non-transparent pixels
+      let minX = width;
+      let minY = height;
+      let maxX = 0;
+      let maxY = 0;
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const alpha = data[(y * width + x) * 4 + 3];
+          if (alpha > 0) {
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+          }
+        }
+      }
+
+      // Check if image is fully transparent
+      if (minX > maxX || minY > maxY) {
+        return prev; // No visible pixels, keep original
+      }
+
+      const trimmedWidth = maxX - minX + 1;
+      const trimmedHeight = maxY - minY + 1;
+
+      // Create trimmed canvas
+      const trimmedCanvas = document.createElement("canvas");
+      trimmedCanvas.width = trimmedWidth;
+      trimmedCanvas.height = trimmedHeight;
+      const trimmedCtx = trimmedCanvas.getContext("2d");
+      if (!trimmedCtx) return prev;
+
+      trimmedCtx.drawImage(
+        frame.image,
+        minX,
+        minY,
+        trimmedWidth,
+        trimmedHeight,
+        0,
+        0,
+        trimmedWidth,
+        trimmedHeight
+      );
+
+      // Create new image from trimmed canvas
+      const trimmedImage = new Image();
+      trimmedImage.src = trimmedCanvas.toDataURL("image/png");
+
+      // Update frame
+      const updatedFrames = [...prev.frames];
+      updatedFrames[frameIndex] = {
+        ...frame,
+        image: trimmedImage,
+        width: trimmedWidth,
+        height: trimmedHeight,
+        trimmed: true,
+        sourceSize: { w: frame.sourceSize.w, h: frame.sourceSize.h },
+        spriteSourceSize: {
+          x: minX,
+          y: minY,
+          w: trimmedWidth,
+          h: trimmedHeight,
+        },
+      };
+
+      return {
+        ...prev,
+        frames: updatedFrames,
+        packedAtlas: null,
+      };
+    });
+  }, []);
+
+  // Trim all frames
+  const trimAllFrames = useCallback(() => {
+    setState((prev) => {
+      const updatedFrames = prev.frames.map((frame) => {
+        if (!frame.image) return frame;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = frame.image.width;
+        canvas.height = frame.image.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return frame;
+
+        ctx.drawImage(frame.image, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const { data, width, height } = imageData;
+
+        let minX = width;
+        let minY = height;
+        let maxX = 0;
+        let maxY = 0;
+
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const alpha = data[(y * width + x) * 4 + 3];
+            if (alpha > 0) {
+              minX = Math.min(minX, x);
+              minY = Math.min(minY, y);
+              maxX = Math.max(maxX, x);
+              maxY = Math.max(maxY, y);
+            }
+          }
+        }
+
+        if (minX > maxX || minY > maxY) return frame;
+
+        const trimmedWidth = maxX - minX + 1;
+        const trimmedHeight = maxY - minY + 1;
+
+        const trimmedCanvas = document.createElement("canvas");
+        trimmedCanvas.width = trimmedWidth;
+        trimmedCanvas.height = trimmedHeight;
+        const trimmedCtx = trimmedCanvas.getContext("2d");
+        if (!trimmedCtx) return frame;
+
+        trimmedCtx.drawImage(
+          frame.image,
+          minX,
+          minY,
+          trimmedWidth,
+          trimmedHeight,
+          0,
+          0,
+          trimmedWidth,
+          trimmedHeight
+        );
+
+        const trimmedImage = new Image();
+        trimmedImage.src = trimmedCanvas.toDataURL("image/png");
+
+        return {
+          ...frame,
+          image: trimmedImage,
+          width: trimmedWidth,
+          height: trimmedHeight,
+          trimmed: true,
+          sourceSize: { w: frame.sourceSize.w, h: frame.sourceSize.h },
+          spriteSourceSize: {
+            x: minX,
+            y: minY,
+            w: trimmedWidth,
+            h: trimmedHeight,
+          },
+        };
+      });
+
+      return {
+        ...prev,
+        frames: updatedFrames,
+        packedAtlas: null,
+      };
+    });
+  }, []);
+
   const clearFrames = useCallback(() => {
     setState((prev) => ({
       ...prev,
@@ -406,6 +583,8 @@ export function useAtlasPacker() {
     addSpriteStrip,
     validateImageFile,
     removeFrame,
+    trimFrame,
+    trimAllFrames,
     clearFrames,
     packAtlas,
     exportAtlas,

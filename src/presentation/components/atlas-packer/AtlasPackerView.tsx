@@ -1,6 +1,10 @@
 "use client";
 
-import { EXPORT_FORMATS } from "@/src/domain/types/atlas";
+import {
+  EXPORT_FORMATS,
+  LAYOUT_OPTIONS,
+  SORT_OPTIONS,
+} from "@/src/domain/types/atlas";
 import { MainLayout } from "@/src/presentation/components/templates/MainLayout";
 import { useAtlasPacker } from "@/src/presentation/hooks/useAtlasPacker";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -18,6 +22,8 @@ export function AtlasPackerView() {
     addFiles,
     addSpriteStrip,
     removeFrame,
+    trimFrame,
+    trimAllFrames,
     clearFrames,
     packAtlas,
     exportAtlas,
@@ -393,7 +399,19 @@ export function AtlasPackerView() {
                     <div className="flex items-center gap-1">
                       <span className="text-xs text-gray-500">
                         {frame.width}x{frame.height}
+                        {frame.trimmed && " ✂️"}
                       </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          trimFrame(frame.id);
+                        }}
+                        className="ie-button ie-button-sm opacity-0 group-hover:opacity-100 !p-0.5 !min-w-0"
+                        title="Trim transparent"
+                        disabled={frame.trimmed}
+                      >
+                        ✂️
+                      </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -432,6 +450,14 @@ export function AtlasPackerView() {
                 onClick={handleStripFileSelect}
               >
                 🎞️ Import Strip
+              </button>
+              <button
+                className="ie-button ie-button-sm w-full"
+                onClick={trimAllFrames}
+                disabled={frames.length === 0}
+                title="Trim transparent pixels from all sprites"
+              >
+                ✂️ Trim All
               </button>
               <input
                 ref={stripInputRef}
@@ -653,6 +679,50 @@ export function AtlasPackerView() {
                   }
                   className="w-full"
                 />
+              </div>
+
+              {/* Layout Mode */}
+              <div>
+                <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1">
+                  Layout Mode
+                </label>
+                <select
+                  className="ie-input"
+                  value={settings.layoutMode}
+                  onChange={(e) =>
+                    updateSettings({
+                      layoutMode: e.target.value as typeof settings.layoutMode,
+                    })
+                  }
+                >
+                  {LAYOUT_OPTIONS.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.icon} {option.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Sort Method */}
+              <div>
+                <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1">
+                  Sort Method
+                </label>
+                <select
+                  className="ie-input"
+                  value={settings.sortMethod}
+                  onChange={(e) =>
+                    updateSettings({
+                      sortMethod: e.target.value as typeof settings.sortMethod,
+                    })
+                  }
+                >
+                  {SORT_OPTIONS.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.icon} {option.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Options */}
