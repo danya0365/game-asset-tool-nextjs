@@ -44,6 +44,7 @@ const features: FeatureCard[] = [
     icon: "🎨",
     title: "Color Palette",
     description: "จัดการ Palette สี รองรับ Game-specific palettes",
+    href: "/color-palette",
   },
   {
     icon: "📤",
