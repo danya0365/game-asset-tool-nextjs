@@ -144,6 +144,11 @@ export function TilemapEditorView() {
   const [freeformArrangeMode, setFreeformArrangeMode] = useState<
     "normal" | "transpose"
   >("normal");
+  const [freeformRefImage, setFreeformRefImage] = useState<string | null>(null);
+  const [freeformRefOpacity, setFreeformRefOpacity] = useState(0.5);
+  const [freeformRefScale, setFreeformRefScale] = useState(1);
+  const [freeformRefOffset, setFreeformRefOffset] = useState({ x: 0, y: 0 });
+  const freeformRefInputRef = useRef<HTMLInputElement>(null);
   const tileGroupCanvasRef = useRef<HTMLCanvasElement>(null);
   const [tileGroupSelection, setTileGroupSelection] = useState<{
     startX: number;
@@ -1943,6 +1948,44 @@ export function TilemapEditorView() {
                       </button>
                     </div>
 
+                    {/* Building Templates */}
+                    <div className="ie-groupbox">
+                      <span className="ie-groupbox-title">
+                        📐 Building Templates
+                      </span>
+                      <div className="grid grid-cols-4 gap-1">
+                        {[
+                          { name: "🏠 บ้านเล็ก", w: 3, h: 3 },
+                          { name: "🏡 บ้านกลาง", w: 4, h: 4 },
+                          { name: "🏢 บ้านใหญ่", w: 5, h: 5 },
+                          { name: "🏬 ตึก 2 ชั้น", w: 4, h: 6 },
+                          { name: "🏨 ตึก 3 ชั้น", w: 5, h: 8 },
+                          { name: "🛖 กระท่อม", w: 2, h: 2 },
+                          { name: "🏪 ร้านค้า", w: 3, h: 4 },
+                          { name: "🗼 หอคอย", w: 2, h: 6 },
+                        ].map((template) => (
+                          <button
+                            key={template.name}
+                            className="ie-button text-xs p-1 truncate"
+                            onClick={() => {
+                              setFreeformSize({
+                                width: template.w,
+                                height: template.h,
+                              });
+                              setFreeformTiles(
+                                Array(template.h)
+                                  .fill(null)
+                                  .map(() => Array(template.w).fill(null))
+                              );
+                            }}
+                            title={`${template.w}x${template.h} tiles`}
+                          >
+                            {template.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     {/* Tile Selector - supports both click and drag */}
                     <div className="ie-groupbox">
                       <span className="ie-groupbox-title">
@@ -2178,14 +2221,359 @@ export function TilemapEditorView() {
                       )}
                     </div>
 
+                    {/* Reference Image Upload */}
+                    <div className="ie-groupbox">
+                      <span className="ie-groupbox-title">
+                        🖼️ Reference Image (ภาพตัวอย่าง)
+                      </span>
+                      <div className="flex gap-2 items-center">
+                        <button
+                          className="ie-button text-xs flex-1"
+                          onClick={() => freeformRefInputRef.current?.click()}
+                        >
+                          📤 อัพโหลดรูปตัวอย่าง
+                        </button>
+                        {freeformRefImage && (
+                          <button
+                            className="ie-button text-xs text-red-500"
+                            onClick={() => setFreeformRefImage(null)}
+                          >
+                            ✕ ลบ
+                          </button>
+                        )}
+                        <input
+                          ref={freeformRefInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (ev) => {
+                                setFreeformRefImage(
+                                  ev.target?.result as string
+                                );
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                            e.target.value = "";
+                          }}
+                        />
+                      </div>
+                      {freeformRefImage && (
+                        <div className="mt-2">
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            {/* Opacity */}
+                            <div className="flex items-center gap-1">
+                              <span>Opacity:</span>
+                              <input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.1"
+                                value={freeformRefOpacity}
+                                onChange={(e) =>
+                                  setFreeformRefOpacity(
+                                    parseFloat(e.target.value)
+                                  )
+                                }
+                                className="flex-1 w-16"
+                              />
+                              <span className="w-8">
+                                {Math.round(freeformRefOpacity * 100)}%
+                              </span>
+                            </div>
+                            {/* Scale */}
+                            <div className="flex items-center gap-1">
+                              <span>Scale:</span>
+                              <input
+                                type="range"
+                                min="0.25"
+                                max="3"
+                                step="0.25"
+                                value={freeformRefScale}
+                                onChange={(e) =>
+                                  setFreeformRefScale(
+                                    parseFloat(e.target.value)
+                                  )
+                                }
+                                className="flex-1 w-16"
+                              />
+                              <span className="w-8">{freeformRefScale}x</span>
+                            </div>
+                          </div>
+                          {/* Offset Controls */}
+                          <div className="flex items-center gap-2 mt-1 text-xs">
+                            <span>Offset:</span>
+                            <button
+                              className="ie-button px-2 py-0.5"
+                              onClick={() =>
+                                setFreeformRefOffset((p) => ({
+                                  ...p,
+                                  x: p.x - 4,
+                                }))
+                              }
+                            >
+                              ←
+                            </button>
+                            <button
+                              className="ie-button px-2 py-0.5"
+                              onClick={() =>
+                                setFreeformRefOffset((p) => ({
+                                  ...p,
+                                  x: p.x + 4,
+                                }))
+                              }
+                            >
+                              →
+                            </button>
+                            <button
+                              className="ie-button px-2 py-0.5"
+                              onClick={() =>
+                                setFreeformRefOffset((p) => ({
+                                  ...p,
+                                  y: p.y - 4,
+                                }))
+                              }
+                            >
+                              ↑
+                            </button>
+                            <button
+                              className="ie-button px-2 py-0.5"
+                              onClick={() =>
+                                setFreeformRefOffset((p) => ({
+                                  ...p,
+                                  y: p.y + 4,
+                                }))
+                              }
+                            >
+                              ↓
+                            </button>
+                            <button
+                              className="ie-button px-2 py-0.5 text-red-500"
+                              onClick={() =>
+                                setFreeformRefOffset({ x: 0, y: 0 })
+                              }
+                            >
+                              Reset
+                            </button>
+                            <span className="text-gray-500">
+                              ({freeformRefOffset.x}, {freeformRefOffset.y})
+                            </span>
+                          </div>
+                          {/* Auto Draw from Reference Image */}
+                          <button
+                            className="ie-button w-full mt-2 text-sm font-bold bg-green-600 text-white hover:bg-green-700"
+                            onClick={async () => {
+                              if (!freeformRefImage || !activeTileset?.image)
+                                return;
+
+                              // Load reference image
+                              const refImg = new Image();
+                              refImg.src = freeformRefImage;
+                              await new Promise((resolve) => {
+                                refImg.onload = resolve;
+                              });
+
+                              // Create canvas for reference image
+                              const refCanvas =
+                                document.createElement("canvas");
+                              const tileW = activeTileset.tileWidth;
+                              const tileH = activeTileset.tileHeight;
+
+                              // Calculate grid size from ref image
+                              const gridW = Math.ceil(refImg.width / tileW);
+                              const gridH = Math.ceil(refImg.height / tileH);
+
+                              refCanvas.width = gridW * tileW;
+                              refCanvas.height = gridH * tileH;
+                              const refCtx = refCanvas.getContext("2d")!;
+                              refCtx.drawImage(
+                                refImg,
+                                0,
+                                0,
+                                refCanvas.width,
+                                refCanvas.height
+                              );
+
+                              // Create canvas for tileset
+                              const tilesetCanvas =
+                                document.createElement("canvas");
+                              tilesetCanvas.width = activeTileset.image.width;
+                              tilesetCanvas.height = activeTileset.image.height;
+                              const tilesetCtx =
+                                tilesetCanvas.getContext("2d")!;
+                              tilesetCtx.drawImage(activeTileset.image, 0, 0);
+
+                              // Function to get pixel data for a tile region
+                              const getTilePixels = (
+                                ctx: CanvasRenderingContext2D,
+                                x: number,
+                                y: number
+                              ) => {
+                                return ctx.getImageData(
+                                  x * tileW,
+                                  y * tileH,
+                                  tileW,
+                                  tileH
+                                ).data;
+                              };
+
+                              // Advanced pixel comparison with position weighting
+                              const comparePixels = (
+                                p1: Uint8ClampedArray,
+                                p2: Uint8ClampedArray
+                              ) => {
+                                let diff = 0;
+                                let matchCount = 0;
+                                const pixelCount = p1.length / 4;
+
+                                for (let i = 0; i < p1.length; i += 4) {
+                                  const a1 = p1[i + 3];
+                                  const a2 = p2[i + 3];
+
+                                  // Both transparent - perfect match for this pixel
+                                  if (a1 < 10 && a2 < 10) {
+                                    matchCount++;
+                                    continue;
+                                  }
+
+                                  // One transparent, one not - big penalty
+                                  if (a1 < 10 !== a2 < 10) {
+                                    diff += 500;
+                                    continue;
+                                  }
+
+                                  // Calculate exact RGB difference (squared for precision)
+                                  const dr = p1[i] - p2[i];
+                                  const dg = p1[i + 1] - p2[i + 1];
+                                  const db = p1[i + 2] - p2[i + 2];
+                                  const pixelDiff = dr * dr + dg * dg + db * db;
+
+                                  // Exact match bonus
+                                  if (pixelDiff === 0) {
+                                    matchCount++;
+                                  } else if (pixelDiff < 100) {
+                                    // Very close match
+                                    matchCount += 0.8;
+                                    diff += pixelDiff * 0.5;
+                                  } else {
+                                    diff += pixelDiff;
+                                  }
+                                }
+
+                                // Bonus for high exact match ratio
+                                const matchRatio = matchCount / pixelCount;
+                                if (matchRatio > 0.95) {
+                                  diff *= 0.1; // 95%+ match = huge bonus
+                                } else if (matchRatio > 0.9) {
+                                  diff *= 0.3;
+                                } else if (matchRatio > 0.8) {
+                                  diff *= 0.5;
+                                }
+
+                                return diff;
+                              };
+
+                              // Match each tile in ref image to tileset
+                              const newTiles: (number | null)[][] = [];
+                              for (let gy = 0; gy < gridH; gy++) {
+                                const row: (number | null)[] = [];
+                                for (let gx = 0; gx < gridW; gx++) {
+                                  const refPixels = getTilePixels(
+                                    refCtx,
+                                    gx,
+                                    gy
+                                  );
+
+                                  // Check if tile is mostly transparent
+                                  let totalAlpha = 0;
+                                  for (
+                                    let i = 3;
+                                    i < refPixels.length;
+                                    i += 4
+                                  ) {
+                                    totalAlpha += refPixels[i];
+                                  }
+                                  if (
+                                    totalAlpha <
+                                    (refPixels.length / 4) * 10
+                                  ) {
+                                    row.push(null);
+                                    continue;
+                                  }
+
+                                  // Find best matching tile
+                                  let bestTile = 0;
+                                  let bestDiff = Infinity;
+                                  for (
+                                    let ty = 0;
+                                    ty < activeTileset.rows;
+                                    ty++
+                                  ) {
+                                    for (
+                                      let tx = 0;
+                                      tx < activeTileset.columns;
+                                      tx++
+                                    ) {
+                                      const tilePixels = getTilePixels(
+                                        tilesetCtx,
+                                        tx,
+                                        ty
+                                      );
+                                      const diff = comparePixels(
+                                        refPixels,
+                                        tilePixels
+                                      );
+                                      if (diff < bestDiff) {
+                                        bestDiff = diff;
+                                        bestTile =
+                                          ty * activeTileset.columns + tx;
+                                      }
+                                    }
+                                  }
+                                  row.push(bestTile);
+                                }
+                                newTiles.push(row);
+                              }
+
+                              // Update canvas size and tiles
+                              setFreeformSize({ width: gridW, height: gridH });
+                              setFreeformTiles(newTiles);
+
+                              // Hide reference image after auto draw to show actual tiles
+                              setFreeformRefOpacity(0);
+                            }}
+                          >
+                            🤖 Auto Draw จาก Reference Image
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Freeform Canvas */}
                     <div className="ie-groupbox">
                       <span className="ie-groupbox-title">
                         Paint Canvas (click to paint, right-click to erase)
                       </span>
-                      <div className="ie-panel-inset p-2 overflow-auto max-h-48">
+                      <div className="ie-panel-inset p-2 overflow-auto max-h-64 relative">
+                        {/* Reference image overlay */}
+                        {freeformRefImage && freeformRefOpacity > 0 && (
+                          <img
+                            src={freeformRefImage}
+                            alt="Reference"
+                            className="absolute pointer-events-none z-10"
+                            style={{
+                              opacity: freeformRefOpacity,
+                              transform: `translate(${freeformRefOffset.x}px, ${freeformRefOffset.y}px) scale(${freeformRefScale})`,
+                              transformOrigin: "top left",
+                              imageRendering: "pixelated",
+                            }}
+                          />
+                        )}
                         <div
-                          className="grid gap-0 border border-gray-400"
+                          className="grid gap-0 border border-gray-400 relative"
                           style={{
                             gridTemplateColumns: `repeat(${freeformSize.width}, ${activeTileset.tileWidth}px)`,
                           }}
@@ -2194,7 +2582,7 @@ export function TilemapEditorView() {
                             row.map((tileId, x) => (
                               <div
                                 key={`${x}-${y}`}
-                                className="border border-gray-300 dark:border-gray-600 cursor-pointer hover:bg-blue-200/50"
+                                className="border border-gray-300 dark:border-gray-600 cursor-pointer hover:bg-blue-200/50 relative z-20"
                                 style={{
                                   width: activeTileset.tileWidth,
                                   height: activeTileset.tileHeight,
