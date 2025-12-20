@@ -26,14 +26,22 @@ const features: FeatureCard[] = [
     href: "/pixel-editor",
   },
   {
+    icon: "🎨",
+    title: "Texture Editor",
+    description: "9-Slice, Filters, Outline, Shadow generator",
+    href: "/texture-editor",
+  },
+  {
     icon: "🗺️",
     title: "Tilemap Editor",
     description: "สร้าง Tilemap แบบ Layer-based พร้อม Auto-tile",
+    href: "/tilemap-editor",
   },
   {
     icon: "🎬",
     title: "Spritesheet Editor",
     description: "จัดการ Animation frames พร้อม Timeline editor",
+    href: "/spritesheet-editor",
   },
   {
     icon: "📦",
@@ -51,6 +59,7 @@ const features: FeatureCard[] = [
     icon: "📤",
     title: "Multi-Export",
     description: "Export ไปยัง Cocos, Phaser, Unity และอื่นๆ",
+    href: "/multi-export",
   },
 ];
 

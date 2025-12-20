@@ -98,14 +98,14 @@
 
 ---
 
-## Phase 3: Texture Editor
+## Phase 3: Texture Editor ✅ (Basic Implementation)
 
 ### 3.1 Texture Canvas
 
-- [ ] Create new texture (custom size)
-- [ ] Import image files (PNG, JPG, GIF, WebP)
-- [ ] Texture preview panel
-- [ ] 9-slice editor for UI textures
+- [x] Create new texture (custom size)
+- [x] Import image files (PNG, JPG, GIF, WebP)
+- [x] Texture preview panel
+- [x] 9-slice editor for UI textures
 - [ ] Seamless texture preview
 
 ### 3.2 Texture Operations
@@ -113,10 +113,10 @@
 - [ ] Resize texture
 - [ ] Crop texture
 - [ ] Rotate/Flip
-- [ ] Filters (Blur, Sharpen, Pixelate)
-- [ ] Color adjustments (Brightness, Contrast, Saturation)
-- [ ] Outline generator
-- [ ] Shadow generator
+- [x] Filters (Blur, Sharpen, Pixelate, Grayscale, Invert, Sepia)
+- [x] Color adjustments (Brightness, Contrast, Saturation)
+- [x] Outline generator
+- [x] Shadow generator
 
 ### 3.3 Texture Atlas / Packing ✅ (Completed)
 
@@ -125,33 +125,38 @@
 - [ ] Manual arrangement
 - [x] Padding/Spacing settings
 - [x] Power of 2 sizing option
-- [ ] Trim transparency option
-- [x] Preview packed result
+- [x] Trim transparency option (per sprite & trim all)
+- [x] Preview packed result with zoom/pan controls
 - [x] Sprite strip import (auto-detect frames)
 - [x] Animation preview with FPS control
 - [x] Drag & drop support
 - [x] Image file validation
 - [x] Export to multiple formats (JSON, Cocos, Phaser, Unity, CSS)
+- [x] Layout modes (Optimal, Horizontal Strip, Vertical Strip, Grid)
+- [x] Sort methods (Name, Width, Height, Area, Perimeter)
+- [x] Auto-pack on settings change
 
 ---
 
-## Phase 4: Tilemap & Tileset Editor
+## Phase 4: Tilemap & Tileset Editor ✅ (Basic Implementation)
 
 ### 4.1 Tileset Management
 
-- [ ] Import tileset image
-- [ ] Define tile size (8x8, 16x16, 32x32, custom)
-- [ ] Auto-slice tileset
-- [ ] Manual tile selection
+- [x] Import tileset image
+- [x] Define tile size (8x8, 16x16, 32x32, 64x64)
+- [x] Auto-slice tileset
+- [x] Manual tile selection
 - [ ] Tile metadata (collision, animation, tags)
-- [ ] Tileset preview
+- [x] Tileset preview with grid
 
 ### 4.2 Tilemap Editor
 
-- [ ] Create new tilemap (grid size)
-- [ ] Multiple tilemap layers
-- [ ] Paint tiles on map
-- [ ] Bucket fill for tiles
+- [x] Create new tilemap (grid size)
+- [x] Multiple tilemap layers
+- [x] Paint tiles on map (Pencil tool)
+- [x] Eraser tool
+- [x] Bucket fill for tiles
+- [x] Tile picker tool
 - [ ] Rectangle select tiles
 - [ ] Copy/Paste tile regions
 - [ ] Auto-tile rules (terrain matching)
@@ -159,6 +164,22 @@
 
 ### 4.3 Tilemap Features
 
+- [x] Zoom & Pan controls
+- [x] Grid toggle
+- [x] Reset view (1:1)
+- [x] Hover position indicator
+- [x] Selected tile preview (3x scale)
+- [x] Layer management (add, remove, rename, reorder)
+- [x] Layer visibility toggle
+- [x] Clear layer
+- [x] Auto-center canvas on creation
+- [x] Export to JSON
+- [x] Keyboard shortcuts (1-4, B/E/G/I, H, +/-, 0, Space)
+- [x] Right-click to erase
+- [x] Space+drag to pan
+- [x] Tileset palette zoom controls
+- [x] Pixel-perfect rendering (imageSmoothing disabled)
+- [x] Import JSON (Custom, Tiled, Cocos, Phaser formats)
 - [ ] Mini-map preview
 - [ ] Collision layer
 - [ ] Object layer
@@ -168,34 +189,35 @@
 
 ---
 
-## Phase 5: Spritesheet & Animation Editor
+## Phase 5: Spritesheet & Animation Editor ✅ (Basic Implementation)
 
 ### 5.1 Spritesheet Import/Creation
 
-- [ ] Import spritesheet image
-- [ ] Auto-detect frames (grid-based)
-- [ ] Manual frame definition
-- [ ] Frame reordering
+- [x] Import spritesheet image
+- [x] Auto-detect frames (grid-based)
+- [x] Manual frame definition
+- [x] Frame reordering (via selection order)
 - [ ] Frame duplication
 - [ ] Frame deletion
 
 ### 5.2 Animation System
 
-- [ ] Animation timeline
-- [ ] Play/Pause/Stop controls
-- [ ] Frame duration (per-frame timing)
-- [ ] Loop settings
+- [x] Animation timeline
+- [x] Play/Pause/Stop controls
+- [x] Frame duration (FPS-based timing)
+- [x] Loop settings
 - [ ] Ping-pong animation
 - [ ] Onion skinning (ghost frames)
-- [ ] Animation preview window
+- [x] Animation preview window
 
 ### 5.3 Animation Management
 
-- [ ] Multiple animations per spritesheet
-- [ ] Animation tags/names
+- [x] Multiple animations per spritesheet
+- [x] Animation tags/names
 - [ ] Animation states (Idle, Walk, Run, Jump, etc.)
 - [ ] Animation events/triggers
 - [ ] Animation blending preview
+- [x] Export animations to JSON
 
 ---
 
@@ -433,9 +455,56 @@ src/
 4. ✅ History System (undo/redo)
 5. ✅ Export PNG
 
-**Sprint 5: Atlas Packer Enhancements** 🔄 Current
+**Sprint 5: Atlas Packer Enhancements** ✅ Completed
 
-1. 🔄 Trim transparent pixels per sprite
+1. ✅ Trim transparent pixels per sprite
+
+**Sprint 6: Spritesheet Editor** ✅ Completed
+
+1. ✅ Create Spritesheet Editor page route
+2. ✅ Import spritesheet image with grid detection
+3. ✅ Frame selection (click/shift+click multi-select)
+4. ✅ Create animations from selected frames
+5. ✅ Animation preview with play/pause controls
+6. ✅ Timeline editor
+7. ✅ Export animations to JSON
+8. ✅ Link from Landing page
+
+**Sprint 7: Tilemap Freeform Enhancements** ✅ Completed
+
+1. ✅ Freeform mode drag-select multiple tiles
+2. ✅ Auto Draw from selection
+3. ✅ Reference Image upload with overlay
+4. ✅ Reference Image pan/scale/offset controls
+5. ✅ Auto Draw from Reference Image (tile matching)
+6. ✅ Building templates for preset sizes
+
+**Sprint 8: Multi-Export** ✅ Completed
+
+1. ✅ Create Multi-Export page route at /multi-export
+2. ✅ Support 9 export formats (Cocos, Phaser, Unity, Godot, LibGDX, CSS, Generic)
+3. ✅ Batch export with ZIP download
+4. ✅ Cocos Creator as default format
+5. ✅ Export settings (scale, padding, power of two, trim)
+6. ✅ Export log with progress indicator
+7. ✅ Link from Landing page
+
+**Sprint 9: Texture Editor & Tilemap Import** ✅ Completed
+
+1. ✅ Create Texture Editor page at /texture-editor
+2. ✅ 9-Slice editor for UI textures
+3. ✅ Filters (Blur, Sharpen, Pixelate, Grayscale, Invert, Sepia)
+4. ✅ Color adjustments (Brightness, Contrast, Saturation)
+5. ✅ Outline generator
+6. ✅ Shadow generator
+7. ✅ Tilemap Import JSON (Custom, Tiled, Cocos, Phaser formats)
+8. ✅ Link from Landing page
+
+**Sprint 10: Next Features** 🔄 Current
+
+1. 🔄 Auto-tile rules (terrain matching)
+2. 🔄 Spritesheet onion skinning
+3. 🔄 Project management (Save/Load)
 
 ---
 
