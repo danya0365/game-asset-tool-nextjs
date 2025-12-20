@@ -35,6 +35,7 @@ const features: FeatureCard[] = [
     icon: "🎬",
     title: "Spritesheet Editor",
     description: "จัดการ Animation frames พร้อม Timeline editor",
+    href: "/spritesheet-editor",
   },
   {
     icon: "📦",
