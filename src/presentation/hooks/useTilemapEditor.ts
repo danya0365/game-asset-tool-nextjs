@@ -473,6 +473,42 @@ export function useTilemapEditor() {
     });
   }, []);
 
+  // Create a freeform tile group from custom tile array
+  const createFreeformTileGroup = useCallback(
+    (
+      name: string,
+      tiles: { tileId: number; offsetX: number; offsetY: number }[],
+      width: number,
+      height: number
+    ) => {
+      setState((prev) => {
+        if (tiles.length === 0) return prev;
+
+        const newGroup: TileGroup = {
+          id: generateId(),
+          name,
+          parts: [
+            {
+              name: "main",
+              tiles,
+              width,
+              height,
+              repeatable: false,
+            },
+          ],
+          previewTileId: tiles[0]?.tileId,
+        };
+
+        return {
+          ...prev,
+          tileGroups: [...prev.tileGroups, newGroup],
+          activeTileGroup: newGroup,
+        };
+      });
+    },
+    []
+  );
+
   // Create a new tile group from current brush pattern (for building variations)
   const createTileGroup = useCallback(
     (name: string, partName: string, repeatable: boolean = false) => {
@@ -1190,6 +1226,7 @@ export function useTilemapEditor() {
     resizeTilemap,
     // Tile Group functions
     createSimpleTileGroup,
+    createFreeformTileGroup,
     createTileGroup,
     addTileGroupPart,
     deleteTileGroup,

@@ -47,6 +47,7 @@ export function TilemapEditorView() {
     exportToJson,
     exportTilemap,
     createSimpleTileGroup,
+    createFreeformTileGroup,
     createTileGroup,
     addTileGroupPart,
     deleteTileGroup,
@@ -124,9 +125,15 @@ export function TilemapEditorView() {
   // Tile Group dialog state
   const [showTileGroupDialog, setShowTileGroupDialog] = useState(false);
   const [tileGroupName, setTileGroupName] = useState("");
-  const [tileGroupMode, setTileGroupMode] = useState<"simple" | "building">(
-    "simple"
-  );
+  const [tileGroupMode, setTileGroupMode] = useState<
+    "simple" | "building" | "freeform"
+  >("simple");
+  // Freeform mode state
+  const [freeformSize, setFreeformSize] = useState({ width: 5, height: 3 });
+  const [freeformTiles, setFreeformTiles] = useState<(number | null)[][]>([]);
+  const [freeformSelectedTile, setFreeformSelectedTile] = useState<
+    number | null
+  >(null);
   const tileGroupCanvasRef = useRef<HTMLCanvasElement>(null);
   const [tileGroupSelection, setTileGroupSelection] = useState<{
     startX: number;
@@ -396,7 +403,7 @@ export function TilemapEditorView() {
     }, 50);
 
     return () => clearTimeout(timer);
-  }, [showTileGroupDialog, activeTileset]);
+  }, [showTileGroupDialog, activeTileset, tileGroupMode]);
 
   // Get tile position from mouse event
   const getTilePos = useCallback(
@@ -1551,30 +1558,53 @@ export function TilemapEditorView() {
               </div>
               <div className="ie-window-body p-3 space-y-3">
                 {/* Mode Selection */}
-                <div className="flex gap-2">
+                <div className="flex gap-1">
                   <button
-                    className={`ie-button flex-1 ${
+                    className={`ie-button flex-1 text-xs ${
                       tileGroupMode === "simple" ? "ie-button-active" : ""
                     }`}
                     onClick={() => setTileGroupMode("simple")}
                   >
-                    📦 Simple (Stamp)
+                    📦 Simple
                   </button>
                   <button
-                    className={`ie-button flex-1 ${
+                    className={`ie-button flex-1 text-xs ${
                       tileGroupMode === "building" ? "ie-button-active" : ""
                     }`}
                     onClick={() => setTileGroupMode("building")}
                   >
-                    🏠 Building (Multi-floor)
+                    🏠 Building
+                  </button>
+                  <button
+                    className={`ie-button flex-1 text-xs ${
+                      tileGroupMode === "freeform" ? "ie-button-active" : ""
+                    }`}
+                    onClick={() => {
+                      setTileGroupMode("freeform");
+                      // Initialize freeform tiles grid
+                      setFreeformTiles(
+                        Array(freeformSize.height)
+                          .fill(null)
+                          .map(() => Array(freeformSize.width).fill(null))
+                      );
+                    }}
+                  >
+                    🎨 Freeform
                   </button>
                 </div>
 
                 {/* Instructions */}
                 <div className="text-xs text-gray-600 dark:text-gray-400 p-2 bg-blue-50 dark:bg-blue-900/30 rounded">
-                  {tileGroupMode === "simple" ? (
+                  {tileGroupMode === "simple" && (
                     <>💡 ลากเมาส์บน Tileset เพื่อเลือก tiles ที่ต้องการ</>
-                  ) : (
+                  )}
+                  {tileGroupMode === "freeform" && (
+                    <>
+                      🎨 1. คลิกเลือก tile จาก Tileset → 2. วาดลง Canvas
+                      ด้านล่าง
+                    </>
+                  )}
+                  {tileGroupMode === "building" && (
                     <>
                       🏠 เลือก 3 ส่วน: <strong>หลังคา</strong> (Top),{" "}
                       <strong>ชั้นกลาง</strong> (Middle), <strong>ฐาน</strong>{" "}
@@ -1606,232 +1636,426 @@ export function TilemapEditorView() {
                 )}
 
                 {/* Tileset Preview with Selection */}
-                <div className="ie-groupbox">
-                  <span className="ie-groupbox-title">
-                    {tileGroupMode === "building"
-                      ? `Select ${
-                          currentBuildingPart === "top"
-                            ? "🔺 หลังคา"
-                            : currentBuildingPart === "middle"
-                            ? "🔲 ชั้นกลาง"
-                            : "🔻 ฐาน"
-                        }`
-                      : `Select Tiles from: ${activeTileset.name}`}
-                  </span>
-                  <div
-                    className="ie-panel-inset overflow-auto max-h-64 relative"
-                    onMouseDown={(e) => {
-                      const rect =
-                        tileGroupCanvasRef.current?.getBoundingClientRect();
-                      if (!rect) return;
-                      const x = Math.floor(
-                        (e.clientX - rect.left) / activeTileset.tileWidth
-                      );
-                      const y = Math.floor(
-                        (e.clientY - rect.top) / activeTileset.tileHeight
-                      );
-                      setIsTileGroupSelecting(true);
-                      const selection = {
-                        startX: x,
-                        startY: y,
-                        endX: x,
-                        endY: y,
-                      };
-                      if (tileGroupMode === "building") {
-                        setBuildingParts((prev) => ({
-                          ...prev,
-                          [currentBuildingPart]: selection,
-                        }));
-                      } else {
-                        setTileGroupSelection(selection);
-                      }
-                    }}
-                    onMouseMove={(e) => {
-                      if (!isTileGroupSelecting) return;
-                      const rect =
-                        tileGroupCanvasRef.current?.getBoundingClientRect();
-                      if (!rect) return;
-                      const x = Math.floor(
-                        (e.clientX - rect.left) / activeTileset.tileWidth
-                      );
-                      const y = Math.floor(
-                        (e.clientY - rect.top) / activeTileset.tileHeight
-                      );
-                      if (tileGroupMode === "building") {
-                        setBuildingParts((prev) => {
-                          const current = prev[currentBuildingPart];
-                          if (!current) return prev;
-                          return {
-                            ...prev,
-                            [currentBuildingPart]: {
-                              ...current,
-                              endX: x,
-                              endY: y,
-                            },
-                          };
-                        });
-                      } else {
-                        setTileGroupSelection((prev) =>
-                          prev ? { ...prev, endX: x, endY: y } : null
+                {(tileGroupMode === "simple" ||
+                  tileGroupMode === "building") && (
+                  <div className="ie-groupbox">
+                    <span className="ie-groupbox-title">
+                      {tileGroupMode === "building"
+                        ? `Select ${
+                            currentBuildingPart === "top"
+                              ? "🔺 หลังคา"
+                              : currentBuildingPart === "middle"
+                              ? "🔲 ชั้นกลาง"
+                              : "🔻 ฐาน"
+                          }`
+                        : `Select Tiles from: ${activeTileset.name}`}
+                    </span>
+                    <div
+                      className="ie-panel-inset overflow-auto max-h-64 relative"
+                      onMouseDown={(e) => {
+                        const rect =
+                          tileGroupCanvasRef.current?.getBoundingClientRect();
+                        if (!rect) return;
+                        const x = Math.floor(
+                          (e.clientX - rect.left) / activeTileset.tileWidth
                         );
-                      }
-                    }}
-                    onMouseUp={() => setIsTileGroupSelecting(false)}
-                    onMouseLeave={() => setIsTileGroupSelecting(false)}
-                  >
-                    <canvas
-                      ref={tileGroupCanvasRef}
-                      width={activeTileset.columns * activeTileset.tileWidth}
-                      height={activeTileset.rows * activeTileset.tileHeight}
-                      style={{
-                        imageRendering: "pixelated",
-                        cursor: "crosshair",
+                        const y = Math.floor(
+                          (e.clientY - rect.top) / activeTileset.tileHeight
+                        );
+                        setIsTileGroupSelecting(true);
+                        const selection = {
+                          startX: x,
+                          startY: y,
+                          endX: x,
+                          endY: y,
+                        };
+                        if (tileGroupMode === "building") {
+                          setBuildingParts((prev) => ({
+                            ...prev,
+                            [currentBuildingPart]: selection,
+                          }));
+                        } else {
+                          setTileGroupSelection(selection);
+                        }
                       }}
-                    />
-                    {/* Simple mode selection overlay */}
-                    {tileGroupMode === "simple" && tileGroupSelection && (
-                      <div
-                        className="absolute border-2 border-blue-500 bg-blue-500/20 pointer-events-none"
+                      onMouseMove={(e) => {
+                        if (!isTileGroupSelecting) return;
+                        const rect =
+                          tileGroupCanvasRef.current?.getBoundingClientRect();
+                        if (!rect) return;
+                        const x = Math.floor(
+                          (e.clientX - rect.left) / activeTileset.tileWidth
+                        );
+                        const y = Math.floor(
+                          (e.clientY - rect.top) / activeTileset.tileHeight
+                        );
+                        if (tileGroupMode === "building") {
+                          setBuildingParts((prev) => {
+                            const current = prev[currentBuildingPart];
+                            if (!current) return prev;
+                            return {
+                              ...prev,
+                              [currentBuildingPart]: {
+                                ...current,
+                                endX: x,
+                                endY: y,
+                              },
+                            };
+                          });
+                        } else {
+                          setTileGroupSelection((prev) =>
+                            prev ? { ...prev, endX: x, endY: y } : null
+                          );
+                        }
+                      }}
+                      onMouseUp={() => setIsTileGroupSelecting(false)}
+                      onMouseLeave={() => setIsTileGroupSelecting(false)}
+                    >
+                      <canvas
+                        ref={tileGroupCanvasRef}
+                        width={activeTileset.columns * activeTileset.tileWidth}
+                        height={activeTileset.rows * activeTileset.tileHeight}
                         style={{
-                          left:
-                            Math.min(
-                              tileGroupSelection.startX,
-                              tileGroupSelection.endX
-                            ) * activeTileset.tileWidth,
-                          top:
-                            Math.min(
-                              tileGroupSelection.startY,
-                              tileGroupSelection.endY
-                            ) * activeTileset.tileHeight,
-                          width:
-                            (Math.abs(
-                              tileGroupSelection.endX -
-                                tileGroupSelection.startX
-                            ) +
-                              1) *
-                            activeTileset.tileWidth,
-                          height:
-                            (Math.abs(
-                              tileGroupSelection.endY -
-                                tileGroupSelection.startY
-                            ) +
-                              1) *
-                            activeTileset.tileHeight,
+                          imageRendering: "pixelated",
+                          cursor: "crosshair",
                         }}
                       />
-                    )}
-                    {/* Building mode selection overlays */}
-                    {tileGroupMode === "building" && (
-                      <>
-                        {buildingParts.top && (
-                          <div
-                            className="absolute border-2 border-red-500 bg-red-500/20 pointer-events-none"
-                            style={{
-                              left:
-                                Math.min(
-                                  buildingParts.top.startX,
-                                  buildingParts.top.endX
-                                ) * activeTileset.tileWidth,
-                              top:
-                                Math.min(
-                                  buildingParts.top.startY,
-                                  buildingParts.top.endY
-                                ) * activeTileset.tileHeight,
-                              width:
-                                (Math.abs(
-                                  buildingParts.top.endX -
-                                    buildingParts.top.startX
-                                ) +
-                                  1) *
-                                activeTileset.tileWidth,
-                              height:
-                                (Math.abs(
-                                  buildingParts.top.endY -
-                                    buildingParts.top.startY
-                                ) +
-                                  1) *
-                                activeTileset.tileHeight,
-                            }}
-                          >
-                            <span className="absolute -top-5 left-0 text-xs bg-red-500 text-white px-1 rounded">
-                              🔺 Top
-                            </span>
-                          </div>
-                        )}
-                        {buildingParts.middle && (
-                          <div
-                            className="absolute border-2 border-yellow-500 bg-yellow-500/20 pointer-events-none"
-                            style={{
-                              left:
-                                Math.min(
-                                  buildingParts.middle.startX,
-                                  buildingParts.middle.endX
-                                ) * activeTileset.tileWidth,
-                              top:
-                                Math.min(
-                                  buildingParts.middle.startY,
-                                  buildingParts.middle.endY
-                                ) * activeTileset.tileHeight,
-                              width:
-                                (Math.abs(
-                                  buildingParts.middle.endX -
-                                    buildingParts.middle.startX
-                                ) +
-                                  1) *
-                                activeTileset.tileWidth,
-                              height:
-                                (Math.abs(
-                                  buildingParts.middle.endY -
-                                    buildingParts.middle.startY
-                                ) +
-                                  1) *
-                                activeTileset.tileHeight,
-                            }}
-                          >
-                            <span className="absolute -top-5 left-0 text-xs bg-yellow-500 text-white px-1 rounded">
-                              🔲 Middle
-                            </span>
-                          </div>
-                        )}
-                        {buildingParts.bottom && (
-                          <div
-                            className="absolute border-2 border-green-500 bg-green-500/20 pointer-events-none"
-                            style={{
-                              left:
-                                Math.min(
-                                  buildingParts.bottom.startX,
-                                  buildingParts.bottom.endX
-                                ) * activeTileset.tileWidth,
-                              top:
-                                Math.min(
-                                  buildingParts.bottom.startY,
-                                  buildingParts.bottom.endY
-                                ) * activeTileset.tileHeight,
-                              width:
-                                (Math.abs(
-                                  buildingParts.bottom.endX -
-                                    buildingParts.bottom.startX
-                                ) +
-                                  1) *
-                                activeTileset.tileWidth,
-                              height:
-                                (Math.abs(
-                                  buildingParts.bottom.endY -
-                                    buildingParts.bottom.startY
-                                ) +
-                                  1) *
-                                activeTileset.tileHeight,
-                            }}
-                          >
-                            <span className="absolute -top-5 left-0 text-xs bg-green-500 text-white px-1 rounded">
-                              🔻 Bottom
-                            </span>
-                          </div>
-                        )}
-                      </>
-                    )}
+                      {/* Simple mode selection overlay */}
+                      {tileGroupMode === "simple" && tileGroupSelection && (
+                        <div
+                          className="absolute border-2 border-blue-500 bg-blue-500/20 pointer-events-none"
+                          style={{
+                            left:
+                              Math.min(
+                                tileGroupSelection.startX,
+                                tileGroupSelection.endX
+                              ) * activeTileset.tileWidth,
+                            top:
+                              Math.min(
+                                tileGroupSelection.startY,
+                                tileGroupSelection.endY
+                              ) * activeTileset.tileHeight,
+                            width:
+                              (Math.abs(
+                                tileGroupSelection.endX -
+                                  tileGroupSelection.startX
+                              ) +
+                                1) *
+                              activeTileset.tileWidth,
+                            height:
+                              (Math.abs(
+                                tileGroupSelection.endY -
+                                  tileGroupSelection.startY
+                              ) +
+                                1) *
+                              activeTileset.tileHeight,
+                          }}
+                        />
+                      )}
+                      {/* Building mode selection overlays */}
+                      {tileGroupMode === "building" && (
+                        <>
+                          {buildingParts.top && (
+                            <div
+                              className="absolute border-2 border-red-500 bg-red-500/20 pointer-events-none"
+                              style={{
+                                left:
+                                  Math.min(
+                                    buildingParts.top.startX,
+                                    buildingParts.top.endX
+                                  ) * activeTileset.tileWidth,
+                                top:
+                                  Math.min(
+                                    buildingParts.top.startY,
+                                    buildingParts.top.endY
+                                  ) * activeTileset.tileHeight,
+                                width:
+                                  (Math.abs(
+                                    buildingParts.top.endX -
+                                      buildingParts.top.startX
+                                  ) +
+                                    1) *
+                                  activeTileset.tileWidth,
+                                height:
+                                  (Math.abs(
+                                    buildingParts.top.endY -
+                                      buildingParts.top.startY
+                                  ) +
+                                    1) *
+                                  activeTileset.tileHeight,
+                              }}
+                            >
+                              <span className="absolute -top-5 left-0 text-xs bg-red-500 text-white px-1 rounded">
+                                🔺 Top
+                              </span>
+                            </div>
+                          )}
+                          {buildingParts.middle && (
+                            <div
+                              className="absolute border-2 border-yellow-500 bg-yellow-500/20 pointer-events-none"
+                              style={{
+                                left:
+                                  Math.min(
+                                    buildingParts.middle.startX,
+                                    buildingParts.middle.endX
+                                  ) * activeTileset.tileWidth,
+                                top:
+                                  Math.min(
+                                    buildingParts.middle.startY,
+                                    buildingParts.middle.endY
+                                  ) * activeTileset.tileHeight,
+                                width:
+                                  (Math.abs(
+                                    buildingParts.middle.endX -
+                                      buildingParts.middle.startX
+                                  ) +
+                                    1) *
+                                  activeTileset.tileWidth,
+                                height:
+                                  (Math.abs(
+                                    buildingParts.middle.endY -
+                                      buildingParts.middle.startY
+                                  ) +
+                                    1) *
+                                  activeTileset.tileHeight,
+                              }}
+                            >
+                              <span className="absolute -top-5 left-0 text-xs bg-yellow-500 text-white px-1 rounded">
+                                🔲 Middle
+                              </span>
+                            </div>
+                          )}
+                          {buildingParts.bottom && (
+                            <div
+                              className="absolute border-2 border-green-500 bg-green-500/20 pointer-events-none"
+                              style={{
+                                left:
+                                  Math.min(
+                                    buildingParts.bottom.startX,
+                                    buildingParts.bottom.endX
+                                  ) * activeTileset.tileWidth,
+                                top:
+                                  Math.min(
+                                    buildingParts.bottom.startY,
+                                    buildingParts.bottom.endY
+                                  ) * activeTileset.tileHeight,
+                                width:
+                                  (Math.abs(
+                                    buildingParts.bottom.endX -
+                                      buildingParts.bottom.startX
+                                  ) +
+                                    1) *
+                                  activeTileset.tileWidth,
+                                height:
+                                  (Math.abs(
+                                    buildingParts.bottom.endY -
+                                      buildingParts.bottom.startY
+                                  ) +
+                                    1) *
+                                  activeTileset.tileHeight,
+                              }}
+                            >
+                              <span className="absolute -top-5 left-0 text-xs bg-green-500 text-white px-1 rounded">
+                                🔻 Bottom
+                              </span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Freeform Mode UI */}
+                {tileGroupMode === "freeform" && (
+                  <>
+                    {/* Size Controls */}
+                    <div className="flex gap-2 items-center">
+                      <label className="text-xs font-bold">Canvas Size:</label>
+                      <div className="flex items-center gap-1">
+                        <button
+                          className="ie-button ie-button-sm px-1"
+                          onClick={() =>
+                            setFreeformSize((prev) => ({
+                              ...prev,
+                              width: Math.max(1, prev.width - 1),
+                            }))
+                          }
+                        >
+                          -
+                        </button>
+                        <span className="w-8 text-center text-xs">
+                          {freeformSize.width}
+                        </span>
+                        <button
+                          className="ie-button ie-button-sm px-1"
+                          onClick={() =>
+                            setFreeformSize((prev) => ({
+                              ...prev,
+                              width: Math.min(20, prev.width + 1),
+                            }))
+                          }
+                        >
+                          +
+                        </button>
+                      </div>
+                      <span className="text-xs">x</span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          className="ie-button ie-button-sm px-1"
+                          onClick={() =>
+                            setFreeformSize((prev) => ({
+                              ...prev,
+                              height: Math.max(1, prev.height - 1),
+                            }))
+                          }
+                        >
+                          -
+                        </button>
+                        <span className="w-8 text-center text-xs">
+                          {freeformSize.height}
+                        </span>
+                        <button
+                          className="ie-button ie-button-sm px-1"
+                          onClick={() =>
+                            setFreeformSize((prev) => ({
+                              ...prev,
+                              height: Math.min(20, prev.height + 1),
+                            }))
+                          }
+                        >
+                          +
+                        </button>
+                      </div>
+                      <button
+                        className="ie-button ie-button-sm text-xs ml-auto"
+                        onClick={() => {
+                          setFreeformTiles(
+                            Array(freeformSize.height)
+                              .fill(null)
+                              .map(() => Array(freeformSize.width).fill(null))
+                          );
+                        }}
+                      >
+                        🗑️ Clear
+                      </button>
+                    </div>
+
+                    {/* Tile Selector */}
+                    <div className="ie-groupbox">
+                      <span className="ie-groupbox-title">
+                        Select Tile{" "}
+                        {freeformSelectedTile !== null &&
+                          `(Selected: #${freeformSelectedTile})`}
+                      </span>
+                      <div
+                        className="ie-panel-inset overflow-auto max-h-32 relative"
+                        onClick={(e) => {
+                          const rect =
+                            tileGroupCanvasRef.current?.getBoundingClientRect();
+                          if (!rect) return;
+                          const x = Math.floor(
+                            (e.clientX - rect.left) / activeTileset.tileWidth
+                          );
+                          const y = Math.floor(
+                            (e.clientY - rect.top) / activeTileset.tileHeight
+                          );
+                          const tileId = y * activeTileset.columns + x;
+                          setFreeformSelectedTile(tileId);
+                        }}
+                      >
+                        <canvas
+                          ref={tileGroupCanvasRef}
+                          width={
+                            activeTileset.columns * activeTileset.tileWidth
+                          }
+                          height={activeTileset.rows * activeTileset.tileHeight}
+                          style={{
+                            imageRendering: "pixelated",
+                            cursor: "pointer",
+                          }}
+                        />
+                        {/* Selected tile overlay */}
+                        {freeformSelectedTile !== null && (
+                          <div
+                            className="absolute border-2 border-blue-500 bg-blue-500/30 pointer-events-none"
+                            style={{
+                              left:
+                                (freeformSelectedTile % activeTileset.columns) *
+                                activeTileset.tileWidth,
+                              top:
+                                Math.floor(
+                                  freeformSelectedTile / activeTileset.columns
+                                ) * activeTileset.tileHeight,
+                              width: activeTileset.tileWidth,
+                              height: activeTileset.tileHeight,
+                            }}
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Freeform Canvas */}
+                    <div className="ie-groupbox">
+                      <span className="ie-groupbox-title">
+                        Paint Canvas (click to paint, right-click to erase)
+                      </span>
+                      <div className="ie-panel-inset p-2 overflow-auto max-h-48">
+                        <div
+                          className="grid gap-0 border border-gray-400"
+                          style={{
+                            gridTemplateColumns: `repeat(${freeformSize.width}, ${activeTileset.tileWidth}px)`,
+                          }}
+                        >
+                          {freeformTiles.map((row, y) =>
+                            row.map((tileId, x) => (
+                              <div
+                                key={`${x}-${y}`}
+                                className="border border-gray-300 dark:border-gray-600 cursor-pointer hover:bg-blue-200/50"
+                                style={{
+                                  width: activeTileset.tileWidth,
+                                  height: activeTileset.tileHeight,
+                                  backgroundImage:
+                                    tileId !== null && activeTileset.image
+                                      ? `url(${activeTileset.image.src})`
+                                      : undefined,
+                                  backgroundPosition:
+                                    tileId !== null
+                                      ? `-${
+                                          (tileId % activeTileset.columns) *
+                                          activeTileset.tileWidth
+                                        }px -${
+                                          Math.floor(
+                                            tileId / activeTileset.columns
+                                          ) * activeTileset.tileHeight
+                                        }px`
+                                      : undefined,
+                                  imageRendering: "pixelated",
+                                }}
+                                onClick={() => {
+                                  if (freeformSelectedTile === null) return;
+                                  setFreeformTiles((prev) => {
+                                    const newTiles = prev.map((r) => [...r]);
+                                    newTiles[y][x] = freeformSelectedTile;
+                                    return newTiles;
+                                  });
+                                }}
+                                onContextMenu={(e) => {
+                                  e.preventDefault();
+                                  setFreeformTiles((prev) => {
+                                    const newTiles = prev.map((r) => [...r]);
+                                    newTiles[y][x] = null;
+                                    return newTiles;
+                                  });
+                                }}
+                              />
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* Selection Info */}
                 {tileGroupMode === "simple" && tileGroupSelection && (
@@ -1980,6 +2204,33 @@ export function TilemapEditorView() {
                           setTileGroupSelection(null);
                           setTileGroupName("");
                         }, 50);
+                      } else if (tileGroupMode === "freeform") {
+                        // Freeform mode: create group from painted tiles
+                        const tiles: {
+                          tileId: number;
+                          offsetX: number;
+                          offsetY: number;
+                        }[] = [];
+                        freeformTiles.forEach((row, y) => {
+                          row.forEach((tileId, x) => {
+                            if (tileId !== null) {
+                              tiles.push({ tileId, offsetX: x, offsetY: y });
+                            }
+                          });
+                        });
+                        if (tiles.length === 0) return;
+
+                        createFreeformTileGroup(
+                          tileGroupName.trim(),
+                          tiles,
+                          freeformSize.width,
+                          freeformSize.height
+                        );
+                        setShowTileGroupDialog(false);
+                        setTileGroupName("");
+                        setTileGroupMode("simple");
+                        setFreeformTiles([]);
+                        setFreeformSelectedTile(null);
                       } else {
                         // Building mode: create group with parts
                         if (!buildingParts.top) return;
@@ -2063,7 +2314,9 @@ export function TilemapEditorView() {
                     disabled={
                       !tileGroupName.trim() ||
                       (tileGroupMode === "simple" && !tileGroupSelection) ||
-                      (tileGroupMode === "building" && !buildingParts.top)
+                      (tileGroupMode === "building" && !buildingParts.top) ||
+                      (tileGroupMode === "freeform" &&
+                        freeformTiles.flat().every((t) => t === null))
                     }
                   >
                     ✨ Create Group
