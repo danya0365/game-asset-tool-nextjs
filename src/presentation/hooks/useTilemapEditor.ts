@@ -1161,6 +1161,136 @@ export function useTilemapEditor() {
     ]
   );
 
+  // Import tilemap from JSON
+  const importFromJson = useCallback(
+    async (jsonString: string): Promise<boolean> => {
+      try {
+        const data = JSON.parse(jsonString);
+
+        // Validate required fields
+        if (!data.width || !data.height || !data.layers) {
+          throw new Error("Invalid tilemap format: missing required fields");
+        }
+
+        // Load tilesets if present
+        const loadedTilesets: Tileset[] = [];
+        if (data.tilesets && Array.isArray(data.tilesets)) {
+          for (const ts of data.tilesets) {
+            const tileset: Tileset = {
+              id: crypto.randomUUID(),
+              name: ts.name || "Imported Tileset",
+              imageUrl: ts.imageUrl || "",
+              tileWidth: ts.tileWidth || data.tileWidth || 16,
+              tileHeight: ts.tileHeight || data.tileHeight || 16,
+              columns: ts.columns || 1,
+              rows: ts.rows || 1,
+              margin: ts.margin || 0,
+              spacing: ts.spacing || 0,
+              image: null,
+              tiles: ts.tiles || [],
+            };
+
+            // Try to load the image if imageUrl is a data URL
+            if (ts.imageUrl && ts.imageUrl.startsWith("data:")) {
+              try {
+                tileset.image = await loadImage(ts.imageUrl);
+              } catch {
+                console.warn("Failed to load tileset image");
+              }
+            }
+
+            loadedTilesets.push(tileset);
+          }
+        }
+
+        // Create layers from imported data
+        const importedLayers: TilemapLayer[] = data.layers.map(
+          (
+            layer: {
+              name?: string;
+              type?: string;
+              visible?: boolean;
+              opacity?: number;
+              data?: number[][] | number[];
+            },
+            index: number
+          ) => {
+            // Handle flat array data (convert to 2D)
+            let layerData: number[][];
+            if (Array.isArray(layer.data)) {
+              if (Array.isArray(layer.data[0])) {
+                // Already 2D array
+                layerData = layer.data as number[][];
+              } else {
+                // Flat array, convert to 2D
+                const flatData = layer.data as number[];
+                layerData = [];
+                for (let y = 0; y < data.height; y++) {
+                  const row: number[] = [];
+                  for (let x = 0; x < data.width; x++) {
+                    const idx = y * data.width + x;
+                    // Convert 1-based (Tiled format) to 0-based, 0 becomes -1 (empty)
+                    const tile = flatData[idx] || 0;
+                    row.push(tile === 0 ? -1 : tile - 1);
+                  }
+                  layerData.push(row);
+                }
+              }
+            } else {
+              // No data, create empty layer
+              layerData = Array.from({ length: data.height }, () =>
+                Array.from({ length: data.width }, () => -1)
+              );
+            }
+
+            return {
+              id: crypto.randomUUID(),
+              name: layer.name || `Layer ${index + 1}`,
+              type: (layer.type as "tile" | "collision" | "object") || "tile",
+              visible: layer.visible !== false,
+              locked: false,
+              opacity: layer.opacity ?? 1,
+              data: layerData,
+            };
+          }
+        );
+
+        // Create the tilemap
+        const importedTilemap: Tilemap = {
+          id: crypto.randomUUID(),
+          name: data.name || "Imported Tilemap",
+          width: data.width,
+          height: data.height,
+          tileWidth: data.tileWidth || data.tilewidth || 16,
+          tileHeight: data.tileHeight || data.tileheight || 16,
+          layers: importedLayers,
+          tilesets: loadedTilesets,
+          backgroundColor: data.backgroundColor,
+        };
+
+        setState((prev) => ({
+          ...prev,
+          tilemap: importedTilemap,
+          activeLayerId: importedLayers[0]?.id || null,
+          activeTilesetId: loadedTilesets[0]?.id || null,
+          error: null,
+        }));
+
+        return true;
+      } catch (error) {
+        console.error("Import error:", error);
+        setState((prev) => ({
+          ...prev,
+          error: `Import failed: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+        }));
+        return false;
+      }
+    },
+    []
+  );
+
   // Resize tilemap
   const resizeTilemap = useCallback((newWidth: number, newHeight: number) => {
     setState((prev) => {
@@ -1223,6 +1353,7 @@ export function useTilemapEditor() {
     clearError,
     exportToJson,
     exportTilemap,
+    importFromJson,
     resizeTilemap,
     // Tile Group functions
     createSimpleTileGroup,

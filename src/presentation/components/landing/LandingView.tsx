@@ -26,6 +26,12 @@ const features: FeatureCard[] = [
     href: "/pixel-editor",
   },
   {
+    icon: "🎨",
+    title: "Texture Editor",
+    description: "9-Slice, Filters, Outline, Shadow generator",
+    href: "/texture-editor",
+  },
+  {
     icon: "🗺️",
     title: "Tilemap Editor",
     description: "สร้าง Tilemap แบบ Layer-based พร้อม Auto-tile",

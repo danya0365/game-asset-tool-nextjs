@@ -46,6 +46,7 @@ export function TilemapEditorView() {
     clearError,
     exportToJson,
     exportTilemap,
+    importFromJson,
     createSimpleTileGroup,
     createFreeformTileGroup,
     createTileGroup,
@@ -59,6 +60,7 @@ export function TilemapEditorView() {
   const tilesetCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importFileInputRef = useRef<HTMLInputElement>(null);
 
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
@@ -1298,6 +1300,25 @@ export function TilemapEditorView() {
               >
                 📄 New Tilemap
               </button>
+              <button
+                className="ie-button ie-button-sm w-full"
+                onClick={() => importFileInputRef.current?.click()}
+              >
+                📂 Import JSON
+              </button>
+              <input
+                ref={importFileInputRef}
+                type="file"
+                accept=".json,.tmj,.ldtk"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const text = await file.text();
+                  await importFromJson(text);
+                  e.target.value = "";
+                }}
+              />
               <button
                 className="ie-button ie-button-sm w-full"
                 onClick={() => setShowExportDialog(true)}
