@@ -47,6 +47,8 @@ export function TilemapEditorView() {
     exportToJson,
     exportTilemap,
     createSimpleTileGroup,
+    createTileGroup,
+    addTileGroupPart,
     deleteTileGroup,
     setActiveTileGroup,
     paintTileGroup,
@@ -122,6 +124,9 @@ export function TilemapEditorView() {
   // Tile Group dialog state
   const [showTileGroupDialog, setShowTileGroupDialog] = useState(false);
   const [tileGroupName, setTileGroupName] = useState("");
+  const [tileGroupMode, setTileGroupMode] = useState<"simple" | "building">(
+    "simple"
+  );
   const tileGroupCanvasRef = useRef<HTMLCanvasElement>(null);
   const [tileGroupSelection, setTileGroupSelection] = useState<{
     startX: number;
@@ -130,6 +135,26 @@ export function TilemapEditorView() {
     endY: number;
   } | null>(null);
   const [isTileGroupSelecting, setIsTileGroupSelecting] = useState(false);
+  // Building mode parts
+  const [buildingParts, setBuildingParts] = useState<{
+    top: { startX: number; startY: number; endX: number; endY: number } | null;
+    middle: {
+      startX: number;
+      startY: number;
+      endX: number;
+      endY: number;
+    } | null;
+    bottom: {
+      startX: number;
+      startY: number;
+      endX: number;
+      endY: number;
+    } | null;
+  }>({ top: null, middle: null, bottom: null });
+  const [currentBuildingPart, setCurrentBuildingPart] = useState<
+    "top" | "middle" | "bottom"
+  >("top");
+  const [buildingFloorCount, setBuildingFloorCount] = useState(1);
 
   // Auto-center canvas when tilemap is created
   useEffect(() => {
@@ -427,7 +452,9 @@ export function TilemapEditorView() {
       if (tool === "pencil") {
         // Use tile group if active, otherwise brush pattern or single tile
         if (activeTileGroup) {
-          paintTileGroup(pos.x, pos.y);
+          // Check if building group (has repeatable middle part)
+          const hasRepeatable = activeTileGroup.parts.some((p) => p.repeatable);
+          paintTileGroup(pos.x, pos.y, hasRepeatable ? buildingFloorCount : 0);
         } else if (brushPattern && brushPattern.tiles.length > 1) {
           paintBrush(pos.x, pos.y);
         } else if (selectedTiles.length > 0) {
@@ -446,6 +473,7 @@ export function TilemapEditorView() {
       selectedTiles,
       brushPattern,
       activeTileGroup,
+      buildingFloorCount,
       pan,
       isSpaceDown,
       getTilePos,
@@ -1057,8 +1085,38 @@ export function TilemapEditorView() {
             {activeTileGroup && (
               <div className="text-xs text-green-600 dark:text-green-400 mt-1 p-1 bg-green-100 dark:bg-green-900/30 rounded">
                 ✓ Using: <strong>{activeTileGroup.name}</strong>
-                <br />
-                <span className="text-gray-500">Click on tilemap to stamp</span>
+                {activeTileGroup.parts.some((p) => p.repeatable) ? (
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Floors:
+                    </span>
+                    <button
+                      className="ie-button ie-button-sm px-1"
+                      onClick={() =>
+                        setBuildingFloorCount(
+                          Math.max(0, buildingFloorCount - 1)
+                        )
+                      }
+                    >
+                      -
+                    </button>
+                    <span className="w-6 text-center font-bold">
+                      {buildingFloorCount}
+                    </span>
+                    <button
+                      className="ie-button ie-button-sm px-1"
+                      onClick={() =>
+                        setBuildingFloorCount(
+                          Math.min(10, buildingFloorCount + 1)
+                        )
+                      }
+                    >
+                      +
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-gray-500">Click on tilemap to stamp</div>
+                )}
               </div>
             )}
           </div>
@@ -1471,11 +1529,11 @@ export function TilemapEditorView() {
         </Portal>
       )}
 
-      {/* Tile Group Dialog - Simple */}
+      {/* Tile Group Dialog */}
       {showTileGroupDialog && activeTileset && (
         <Portal>
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="ie-window w-[500px] h-fit max-h-[80vh]">
+            <div className="ie-window w-[600px] h-fit max-h-[90vh] overflow-auto">
               <div className="ie-titlebar">
                 <span className="ie-titlebar-text">📦 Create Tile Group</span>
                 <button
@@ -1484,21 +1542,81 @@ export function TilemapEditorView() {
                     setShowTileGroupDialog(false);
                     setTileGroupSelection(null);
                     setTileGroupName("");
+                    setTileGroupMode("simple");
+                    setBuildingParts({ top: null, middle: null, bottom: null });
                   }}
                 >
                   <span>×</span>
                 </button>
               </div>
               <div className="ie-window-body p-3 space-y-3">
+                {/* Mode Selection */}
+                <div className="flex gap-2">
+                  <button
+                    className={`ie-button flex-1 ${
+                      tileGroupMode === "simple" ? "ie-button-active" : ""
+                    }`}
+                    onClick={() => setTileGroupMode("simple")}
+                  >
+                    📦 Simple (Stamp)
+                  </button>
+                  <button
+                    className={`ie-button flex-1 ${
+                      tileGroupMode === "building" ? "ie-button-active" : ""
+                    }`}
+                    onClick={() => setTileGroupMode("building")}
+                  >
+                    🏠 Building (Multi-floor)
+                  </button>
+                </div>
+
                 {/* Instructions */}
                 <div className="text-xs text-gray-600 dark:text-gray-400 p-2 bg-blue-50 dark:bg-blue-900/30 rounded">
-                  💡 ลากเมาส์บน Tileset เพื่อเลือก tiles ที่ต้องการ
+                  {tileGroupMode === "simple" ? (
+                    <>💡 ลากเมาส์บน Tileset เพื่อเลือก tiles ที่ต้องการ</>
+                  ) : (
+                    <>
+                      🏠 เลือก 3 ส่วน: <strong>หลังคา</strong> (Top),{" "}
+                      <strong>ชั้นกลาง</strong> (Middle), <strong>ฐาน</strong>{" "}
+                      (Bottom)
+                      <br />
+                      ชั้นกลางสามารถซ้ำได้หลายชั้น
+                    </>
+                  )}
                 </div>
+
+                {/* Building Mode: Part Selection */}
+                {tileGroupMode === "building" && (
+                  <div className="flex gap-1">
+                    {(["top", "middle", "bottom"] as const).map((part) => (
+                      <button
+                        key={part}
+                        className={`ie-button flex-1 text-xs ${
+                          currentBuildingPart === part ? "ie-button-active" : ""
+                        }`}
+                        onClick={() => setCurrentBuildingPart(part)}
+                      >
+                        {part === "top" && "🔺 หลังคา"}
+                        {part === "middle" && "🔲 ชั้นกลาง"}
+                        {part === "bottom" && "🔻 ฐาน"}
+                        {buildingParts[part] && " ✓"}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {/* Tileset Preview with Selection */}
                 <div className="ie-groupbox">
                   <span className="ie-groupbox-title">
-                    Select Tiles from: {activeTileset.name}
+                    {tileGroupMode === "building"
+                      ? `Select ${
+                          currentBuildingPart === "top"
+                            ? "🔺 หลังคา"
+                            : currentBuildingPart === "middle"
+                            ? "🔲 ชั้นกลาง"
+                            : "🔻 ฐาน"
+                        }`
+                      : `Select Tiles from: ${activeTileset.name}`}
                   </span>
                   <div
                     className="ie-panel-inset overflow-auto max-h-64 relative"
@@ -1513,15 +1631,23 @@ export function TilemapEditorView() {
                         (e.clientY - rect.top) / activeTileset.tileHeight
                       );
                       setIsTileGroupSelecting(true);
-                      setTileGroupSelection({
+                      const selection = {
                         startX: x,
                         startY: y,
                         endX: x,
                         endY: y,
-                      });
+                      };
+                      if (tileGroupMode === "building") {
+                        setBuildingParts((prev) => ({
+                          ...prev,
+                          [currentBuildingPart]: selection,
+                        }));
+                      } else {
+                        setTileGroupSelection(selection);
+                      }
                     }}
                     onMouseMove={(e) => {
-                      if (!isTileGroupSelecting || !tileGroupSelection) return;
+                      if (!isTileGroupSelecting) return;
                       const rect =
                         tileGroupCanvasRef.current?.getBoundingClientRect();
                       if (!rect) return;
@@ -1531,9 +1657,24 @@ export function TilemapEditorView() {
                       const y = Math.floor(
                         (e.clientY - rect.top) / activeTileset.tileHeight
                       );
-                      setTileGroupSelection((prev) =>
-                        prev ? { ...prev, endX: x, endY: y } : null
-                      );
+                      if (tileGroupMode === "building") {
+                        setBuildingParts((prev) => {
+                          const current = prev[currentBuildingPart];
+                          if (!current) return prev;
+                          return {
+                            ...prev,
+                            [currentBuildingPart]: {
+                              ...current,
+                              endX: x,
+                              endY: y,
+                            },
+                          };
+                        });
+                      } else {
+                        setTileGroupSelection((prev) =>
+                          prev ? { ...prev, endX: x, endY: y } : null
+                        );
+                      }
                     }}
                     onMouseUp={() => setIsTileGroupSelecting(false)}
                     onMouseLeave={() => setIsTileGroupSelecting(false)}
@@ -1547,8 +1688,8 @@ export function TilemapEditorView() {
                         cursor: "crosshair",
                       }}
                     />
-                    {/* Selection overlay */}
-                    {tileGroupSelection && (
+                    {/* Simple mode selection overlay */}
+                    {tileGroupMode === "simple" && tileGroupSelection && (
                       <div
                         className="absolute border-2 border-blue-500 bg-blue-500/20 pointer-events-none"
                         style={{
@@ -1579,11 +1720,121 @@ export function TilemapEditorView() {
                         }}
                       />
                     )}
+                    {/* Building mode selection overlays */}
+                    {tileGroupMode === "building" && (
+                      <>
+                        {buildingParts.top && (
+                          <div
+                            className="absolute border-2 border-red-500 bg-red-500/20 pointer-events-none"
+                            style={{
+                              left:
+                                Math.min(
+                                  buildingParts.top.startX,
+                                  buildingParts.top.endX
+                                ) * activeTileset.tileWidth,
+                              top:
+                                Math.min(
+                                  buildingParts.top.startY,
+                                  buildingParts.top.endY
+                                ) * activeTileset.tileHeight,
+                              width:
+                                (Math.abs(
+                                  buildingParts.top.endX -
+                                    buildingParts.top.startX
+                                ) +
+                                  1) *
+                                activeTileset.tileWidth,
+                              height:
+                                (Math.abs(
+                                  buildingParts.top.endY -
+                                    buildingParts.top.startY
+                                ) +
+                                  1) *
+                                activeTileset.tileHeight,
+                            }}
+                          >
+                            <span className="absolute -top-5 left-0 text-xs bg-red-500 text-white px-1 rounded">
+                              🔺 Top
+                            </span>
+                          </div>
+                        )}
+                        {buildingParts.middle && (
+                          <div
+                            className="absolute border-2 border-yellow-500 bg-yellow-500/20 pointer-events-none"
+                            style={{
+                              left:
+                                Math.min(
+                                  buildingParts.middle.startX,
+                                  buildingParts.middle.endX
+                                ) * activeTileset.tileWidth,
+                              top:
+                                Math.min(
+                                  buildingParts.middle.startY,
+                                  buildingParts.middle.endY
+                                ) * activeTileset.tileHeight,
+                              width:
+                                (Math.abs(
+                                  buildingParts.middle.endX -
+                                    buildingParts.middle.startX
+                                ) +
+                                  1) *
+                                activeTileset.tileWidth,
+                              height:
+                                (Math.abs(
+                                  buildingParts.middle.endY -
+                                    buildingParts.middle.startY
+                                ) +
+                                  1) *
+                                activeTileset.tileHeight,
+                            }}
+                          >
+                            <span className="absolute -top-5 left-0 text-xs bg-yellow-500 text-white px-1 rounded">
+                              🔲 Middle
+                            </span>
+                          </div>
+                        )}
+                        {buildingParts.bottom && (
+                          <div
+                            className="absolute border-2 border-green-500 bg-green-500/20 pointer-events-none"
+                            style={{
+                              left:
+                                Math.min(
+                                  buildingParts.bottom.startX,
+                                  buildingParts.bottom.endX
+                                ) * activeTileset.tileWidth,
+                              top:
+                                Math.min(
+                                  buildingParts.bottom.startY,
+                                  buildingParts.bottom.endY
+                                ) * activeTileset.tileHeight,
+                              width:
+                                (Math.abs(
+                                  buildingParts.bottom.endX -
+                                    buildingParts.bottom.startX
+                                ) +
+                                  1) *
+                                activeTileset.tileWidth,
+                              height:
+                                (Math.abs(
+                                  buildingParts.bottom.endY -
+                                    buildingParts.bottom.startY
+                                ) +
+                                  1) *
+                                activeTileset.tileHeight,
+                            }}
+                          >
+                            <span className="absolute -top-5 left-0 text-xs bg-green-500 text-white px-1 rounded">
+                              🔻 Bottom
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
 
                 {/* Selection Info */}
-                {tileGroupSelection && (
+                {tileGroupMode === "simple" && tileGroupSelection && (
                   <div className="text-xs text-green-600 dark:text-green-400 p-2 bg-green-50 dark:bg-green-900/30 rounded">
                     ✓ Selected:{" "}
                     {Math.abs(
@@ -1594,6 +1845,72 @@ export function TilemapEditorView() {
                       tileGroupSelection.endY - tileGroupSelection.startY
                     ) + 1}{" "}
                     tiles
+                  </div>
+                )}
+                {tileGroupMode === "building" && (
+                  <div className="text-xs p-2 bg-gray-50 dark:bg-gray-800 rounded space-y-1">
+                    <div
+                      className={
+                        buildingParts.top ? "text-green-600" : "text-gray-400"
+                      }
+                    >
+                      🔺 หลังคา:{" "}
+                      {buildingParts.top
+                        ? `${
+                            Math.abs(
+                              buildingParts.top.endX - buildingParts.top.startX
+                            ) + 1
+                          }x${
+                            Math.abs(
+                              buildingParts.top.endY - buildingParts.top.startY
+                            ) + 1
+                          }`
+                        : "ยังไม่เลือก"}
+                    </div>
+                    <div
+                      className={
+                        buildingParts.middle
+                          ? "text-green-600"
+                          : "text-gray-400"
+                      }
+                    >
+                      🔲 ชั้นกลาง:{" "}
+                      {buildingParts.middle
+                        ? `${
+                            Math.abs(
+                              buildingParts.middle.endX -
+                                buildingParts.middle.startX
+                            ) + 1
+                          }x${
+                            Math.abs(
+                              buildingParts.middle.endY -
+                                buildingParts.middle.startY
+                            ) + 1
+                          } (ซ้ำได้)`
+                        : "ยังไม่เลือก"}
+                    </div>
+                    <div
+                      className={
+                        buildingParts.bottom
+                          ? "text-green-600"
+                          : "text-gray-400"
+                      }
+                    >
+                      🔻 ฐาน:{" "}
+                      {buildingParts.bottom
+                        ? `${
+                            Math.abs(
+                              buildingParts.bottom.endX -
+                                buildingParts.bottom.startX
+                            ) + 1
+                          }x${
+                            Math.abs(
+                              buildingParts.bottom.endY -
+                                buildingParts.bottom.startY
+                            ) + 1
+                          }`
+                        : "ยังไม่เลือก"}
+                    </div>
                   </div>
                 )}
 
@@ -1607,7 +1924,11 @@ export function TilemapEditorView() {
                     className="ie-input flex-1"
                     value={tileGroupName}
                     onChange={(e) => setTileGroupName(e.target.value)}
-                    placeholder="e.g. Carpet, Table, House..."
+                    placeholder={
+                      tileGroupMode === "building"
+                        ? "e.g. House, Tower, Shop..."
+                        : "e.g. Carpet, Table..."
+                    }
                   />
                 </div>
 
@@ -1619,6 +1940,12 @@ export function TilemapEditorView() {
                       setShowTileGroupDialog(false);
                       setTileGroupSelection(null);
                       setTileGroupName("");
+                      setTileGroupMode("simple");
+                      setBuildingParts({
+                        top: null,
+                        middle: null,
+                        bottom: null,
+                      });
                     }}
                   >
                     Cancel
@@ -1626,34 +1953,118 @@ export function TilemapEditorView() {
                   <button
                     className="ie-button flex-1"
                     onClick={() => {
-                      if (!tileGroupSelection || !tileGroupName.trim()) return;
-                      // Use selectTilesArea to create brush pattern, then create group
-                      const minX = Math.min(
-                        tileGroupSelection.startX,
-                        tileGroupSelection.endX
-                      );
-                      const maxX = Math.max(
-                        tileGroupSelection.startX,
-                        tileGroupSelection.endX
-                      );
-                      const minY = Math.min(
-                        tileGroupSelection.startY,
-                        tileGroupSelection.endY
-                      );
-                      const maxY = Math.max(
-                        tileGroupSelection.startY,
-                        tileGroupSelection.endY
-                      );
-                      selectTilesArea(minX, minY, maxX, maxY);
-                      // Small delay to let state update, then create group
-                      setTimeout(() => {
-                        createSimpleTileGroup(tileGroupName.trim());
-                        setShowTileGroupDialog(false);
-                        setTileGroupSelection(null);
-                        setTileGroupName("");
-                      }, 50);
+                      if (!tileGroupName.trim()) return;
+
+                      if (tileGroupMode === "simple") {
+                        if (!tileGroupSelection) return;
+                        const minX = Math.min(
+                          tileGroupSelection.startX,
+                          tileGroupSelection.endX
+                        );
+                        const maxX = Math.max(
+                          tileGroupSelection.startX,
+                          tileGroupSelection.endX
+                        );
+                        const minY = Math.min(
+                          tileGroupSelection.startY,
+                          tileGroupSelection.endY
+                        );
+                        const maxY = Math.max(
+                          tileGroupSelection.startY,
+                          tileGroupSelection.endY
+                        );
+                        selectTilesArea(minX, minY, maxX, maxY);
+                        setTimeout(() => {
+                          createSimpleTileGroup(tileGroupName.trim());
+                          setShowTileGroupDialog(false);
+                          setTileGroupSelection(null);
+                          setTileGroupName("");
+                        }, 50);
+                      } else {
+                        // Building mode: create group with parts
+                        if (!buildingParts.top) return;
+
+                        // Create group with top part first
+                        const topSel = buildingParts.top;
+                        selectTilesArea(
+                          Math.min(topSel.startX, topSel.endX),
+                          Math.min(topSel.startY, topSel.endY),
+                          Math.max(topSel.startX, topSel.endX),
+                          Math.max(topSel.startY, topSel.endY)
+                        );
+                        setTimeout(() => {
+                          createTileGroup(tileGroupName.trim(), "top", false);
+
+                          // Add middle part if exists
+                          if (buildingParts.middle) {
+                            const midSel = buildingParts.middle;
+                            selectTilesArea(
+                              Math.min(midSel.startX, midSel.endX),
+                              Math.min(midSel.startY, midSel.endY),
+                              Math.max(midSel.startX, midSel.endX),
+                              Math.max(midSel.startY, midSel.endY)
+                            );
+                            setTimeout(() => {
+                              // Find the group we just created
+                              addTileGroupPart(
+                                tileGroups[tileGroups.length - 1]?.id || "",
+                                "middle",
+                                true
+                              );
+
+                              // Add bottom part if exists
+                              if (buildingParts.bottom) {
+                                const botSel = buildingParts.bottom;
+                                selectTilesArea(
+                                  Math.min(botSel.startX, botSel.endX),
+                                  Math.min(botSel.startY, botSel.endY),
+                                  Math.max(botSel.startX, botSel.endX),
+                                  Math.max(botSel.startY, botSel.endY)
+                                );
+                                setTimeout(() => {
+                                  addTileGroupPart(
+                                    tileGroups[tileGroups.length - 1]?.id || "",
+                                    "bottom",
+                                    false
+                                  );
+                                  setShowTileGroupDialog(false);
+                                  setTileGroupName("");
+                                  setTileGroupMode("simple");
+                                  setBuildingParts({
+                                    top: null,
+                                    middle: null,
+                                    bottom: null,
+                                  });
+                                }, 50);
+                              } else {
+                                setShowTileGroupDialog(false);
+                                setTileGroupName("");
+                                setTileGroupMode("simple");
+                                setBuildingParts({
+                                  top: null,
+                                  middle: null,
+                                  bottom: null,
+                                });
+                              }
+                            }, 50);
+                          } else {
+                            setShowTileGroupDialog(false);
+                            setTileGroupName("");
+                            setTileGroupMode("simple");
+                            setBuildingParts({
+                              top: null,
+                              middle: null,
+                              bottom: null,
+                            });
+                          }
+                        }, 50);
+                      }
                     }}
-                    disabled={!tileGroupSelection || !tileGroupName.trim()}
+                    disabled={
+                      !tileGroupName.trim() ||
+                      (tileGroupMode === "simple" && !tileGroupSelection) ||
+                      (tileGroupMode === "building" && !buildingParts.top)
+                    }
                   >
                     ✨ Create Group
                   </button>
