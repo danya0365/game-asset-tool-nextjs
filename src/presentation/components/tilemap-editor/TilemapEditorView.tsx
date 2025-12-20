@@ -509,14 +509,20 @@ export function TilemapEditorView() {
   const getTilesetTilePos = useCallback(
     (e: React.MouseEvent) => {
       if (!activeTileset || !tilesetCanvasRef.current) return null;
+      // getBoundingClientRect already accounts for CSS transforms (scale + translate)
+      // So we just need to get the position relative to the canvas and divide by zoom
       const rect = tilesetCanvasRef.current.getBoundingClientRect();
-      const x = (e.clientX - rect.left - tilesetPan.x) / tilesetZoom;
-      const y = (e.clientY - rect.top - tilesetPan.y) / tilesetZoom;
+      // Position relative to the scaled canvas
+      const relX = e.clientX - rect.left;
+      const relY = e.clientY - rect.top;
+      // Convert to original (unscaled) coordinates
+      const x = relX / tilesetZoom;
+      const y = relY / tilesetZoom;
       const tileX = Math.floor(x / activeTileset.tileWidth);
       const tileY = Math.floor(y / activeTileset.tileHeight);
       return { x: tileX, y: tileY };
     },
-    [activeTileset, tilesetZoom, tilesetPan]
+    [activeTileset, tilesetZoom]
   );
 
   // Handle tileset mouse down for drag selection
