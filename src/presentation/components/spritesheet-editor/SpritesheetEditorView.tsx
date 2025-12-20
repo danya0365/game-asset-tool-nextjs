@@ -17,7 +17,35 @@ interface Animation {
   name: string;
   frames: Frame[];
   loop: boolean;
+  state?: AnimationState; // Animation state category
 }
+
+// Animation state templates for common game animations
+type AnimationState =
+  | "idle"
+  | "walk"
+  | "run"
+  | "jump"
+  | "attack"
+  | "hurt"
+  | "death"
+  | "custom";
+
+const ANIMATION_STATE_TEMPLATES: {
+  state: AnimationState;
+  label: string;
+  icon: string;
+  defaultFps: number;
+}[] = [
+  { state: "idle", label: "Idle", icon: "🧍", defaultFps: 8 },
+  { state: "walk", label: "Walk", icon: "🚶", defaultFps: 10 },
+  { state: "run", label: "Run", icon: "🏃", defaultFps: 12 },
+  { state: "jump", label: "Jump", icon: "⬆️", defaultFps: 8 },
+  { state: "attack", label: "Attack", icon: "⚔️", defaultFps: 15 },
+  { state: "hurt", label: "Hurt", icon: "💥", defaultFps: 10 },
+  { state: "death", label: "Death", icon: "💀", defaultFps: 6 },
+  { state: "custom", label: "Custom", icon: "✨", defaultFps: 12 },
+];
 
 export default function SpritesheetEditorView() {
   // Spritesheet state
@@ -279,24 +307,39 @@ export default function SpritesheetEditorView() {
     }
   };
 
-  // Create animation from selected frames
-  const createAnimation = () => {
+  // Create animation from selected frames with state
+  const createAnimationWithState = (state: AnimationState) => {
     if (selectedFrames.length === 0) return;
 
-    const animName = `Animation ${animations.length + 1}`;
+    const template = ANIMATION_STATE_TEMPLATES.find((t) => t.state === state);
+    const animName =
+      state === "custom"
+        ? `Animation ${animations.length + 1}`
+        : `${template?.label || state}`;
     const animFrames = frames.filter((f) => selectedFrames.includes(f.id));
 
     const newAnimation: Animation = {
       id: generateId(),
       name: animName,
       frames: animFrames,
-      loop: true,
+      loop: state !== "death", // Death usually doesn't loop
+      state,
     };
 
     setAnimations((prev) => [...prev, newAnimation]);
     setCurrentAnimation(newAnimation);
     setSelectedFrames([]);
     setCurrentFrameIndex(0);
+
+    // Set FPS based on state template
+    if (template) {
+      setFps(template.defaultFps);
+    }
+  };
+
+  // Create animation from selected frames (legacy, defaults to custom)
+  const createAnimation = () => {
+    createAnimationWithState("custom");
   };
 
   // Delete animation
@@ -581,13 +624,26 @@ export default function SpritesheetEditorView() {
                   </div>
                 )}
               </div>
-              <button
-                className="ie-button mt-1 text-xs"
-                onClick={createAnimation}
-                disabled={selectedFrames.length === 0}
-              >
-                ➕ Create Animation from Selection
-              </button>
+              {/* Animation State Buttons */}
+              <div className="mt-2 space-y-1">
+                <div className="text-[10px] text-gray-500 text-center">
+                  Create as Animation State:
+                </div>
+                <div className="grid grid-cols-4 gap-1">
+                  {ANIMATION_STATE_TEMPLATES.map((template) => (
+                    <button
+                      key={template.state}
+                      className="ie-button text-xs p-1 flex flex-col items-center"
+                      onClick={() => createAnimationWithState(template.state)}
+                      disabled={selectedFrames.length === 0}
+                      title={`${template.label} (${template.defaultFps} FPS)`}
+                    >
+                      <span>{template.icon}</span>
+                      <span className="text-[9px]">{template.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Animations List */}
@@ -611,7 +667,12 @@ export default function SpritesheetEditorView() {
                           setCurrentFrameIndex(0);
                         }}
                       >
-                        <span className="text-xs">
+                        <span className="text-xs flex items-center gap-1">
+                          <span>
+                            {ANIMATION_STATE_TEMPLATES.find(
+                              (t) => t.state === anim.state
+                            )?.icon || "✨"}
+                          </span>
                           {anim.name} ({anim.frames.length}f)
                         </span>
                         <button

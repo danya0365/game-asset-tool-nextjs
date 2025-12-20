@@ -506,11 +506,17 @@ src/
 2. ✅ Spritesheet onion skinning - Ghost frames with opacity control
 3. ✅ Project management - Storage utility, Recent projects, Save/Load .gat files
 
-**Sprint 11: Next Features** 🔄 Current
+**Sprint 11: UI Enhancements** ✅ Completed
 
-1. 🔄 Seamless texture preview
-2. 🔄 Mini-map preview for tilemap
-3. 🔄 Animation states (Idle, Walk, Run)
+1. ✅ Seamless texture preview - Tiled preview with adjustable grid count
+2. ✅ Mini-map preview for tilemap - Overview with viewport indicator
+3. ✅ Animation states (Idle, Walk, Run, Jump, Attack, Hurt, Death, Custom)
+
+**Sprint 12: Next Features** 🔄 Current
+
+1. 🔄 Collision layer for tilemap
+2. 🔄 Animated tiles preview
+3. 🔄 Export Cocos Creator animation format
 
 ---
 
