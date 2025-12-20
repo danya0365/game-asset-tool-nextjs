@@ -518,11 +518,17 @@ src/
 2. ✅ Animated tiles preview - Toggle animation in toolbar, frame cycling
 3. ✅ Export Cocos Creator animation format - Animation clips with states
 
-**Sprint 13: Next Features** 🔄 Current
+**Sprint 13: Editor Enhancements** ✅ Completed
 
-1. 🔄 Undo/Redo for tilemap editor
-2. 🔄 Multi-tileset support
-3. 🔄 Tile properties editor
+1. ✅ Undo/Redo for tilemap editor - History stack, Cmd+Z/Cmd+Shift+Z shortcuts
+2. ✅ Multi-tileset support - Tileset selector, add/remove tilesets
+3. ✅ Tile properties editor - Collision, animated, animation frames
+
+**Sprint 14: Next Features** 🔄 Current
+
+1. 🔄 Keyboard shortcuts help dialog
+2. 🔄 Recent files in tilemap editor
+3. 🔄 Template maps (dungeon, platformer, top-down)
 
 ---
 

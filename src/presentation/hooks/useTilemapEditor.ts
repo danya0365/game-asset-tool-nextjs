@@ -12,7 +12,14 @@ import type {
   Tileset,
 } from "@/src/domain/types/tilemap";
 import { DEFAULT_LAYER, DEFAULT_TILEMAP } from "@/src/domain/types/tilemap";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+
+const MAX_HISTORY_SIZE = 50;
+
+interface HistoryEntry {
+  layers: TilemapLayer[];
+  description: string;
+}
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 11);
@@ -20,6 +27,13 @@ function generateId(): string {
 
 function createEmptyLayerData(width: number, height: number): number[][] {
   return Array.from({ length: height }, () => Array(width).fill(-1));
+}
+
+function cloneLayers(layers: TilemapLayer[]): TilemapLayer[] {
+  return layers.map((layer) => ({
+    ...layer,
+    data: layer.data.map((row) => [...row]),
+  }));
 }
 
 export function useTilemapEditor() {
@@ -40,6 +54,85 @@ export function useTilemapEditor() {
     isLoading: false,
     error: null,
   });
+
+  // History for undo/redo
+  const historyRef = useRef<HistoryEntry[]>([]);
+  const historyIndexRef = useRef(-1);
+
+  // Save current state to history
+  const saveToHistory = useCallback(
+    (description: string) => {
+      if (!state.tilemap) return;
+
+      const entry: HistoryEntry = {
+        layers: cloneLayers(state.tilemap.layers),
+        description,
+      };
+
+      // Remove any redo history after current index
+      historyRef.current = historyRef.current.slice(
+        0,
+        historyIndexRef.current + 1
+      );
+
+      // Add new entry
+      historyRef.current.push(entry);
+
+      // Limit history size
+      if (historyRef.current.length > MAX_HISTORY_SIZE) {
+        historyRef.current.shift();
+      } else {
+        historyIndexRef.current++;
+      }
+    },
+    [state.tilemap]
+  );
+
+  // Undo action
+  const undo = useCallback(() => {
+    if (historyIndexRef.current <= 0 || !state.tilemap) return false;
+
+    historyIndexRef.current--;
+    const entry = historyRef.current[historyIndexRef.current];
+
+    if (entry) {
+      setState((prev) => ({
+        ...prev,
+        tilemap: prev.tilemap
+          ? { ...prev.tilemap, layers: cloneLayers(entry.layers) }
+          : null,
+      }));
+      return true;
+    }
+    return false;
+  }, [state.tilemap]);
+
+  // Redo action
+  const redo = useCallback(() => {
+    if (
+      historyIndexRef.current >= historyRef.current.length - 1 ||
+      !state.tilemap
+    )
+      return false;
+
+    historyIndexRef.current++;
+    const entry = historyRef.current[historyIndexRef.current];
+
+    if (entry) {
+      setState((prev) => ({
+        ...prev,
+        tilemap: prev.tilemap
+          ? { ...prev.tilemap, layers: cloneLayers(entry.layers) }
+          : null,
+      }));
+      return true;
+    }
+    return false;
+  }, [state.tilemap]);
+
+  // Check if undo/redo available
+  const canUndo = historyIndexRef.current > 0;
+  const canRedo = historyIndexRef.current < historyRef.current.length - 1;
 
   // Create new tilemap
   const createTilemap = useCallback(
@@ -139,6 +232,47 @@ export function useTilemapEditor() {
     []
   );
 
+  // Set active tileset
+  const setActiveTileset = useCallback((tilesetId: string | Tileset | null) => {
+    setState((prev) => {
+      if (!prev.tilemap) return prev;
+      if (typeof tilesetId === "string") {
+        const tileset = prev.tilemap.tilesets.find((t) => t.id === tilesetId);
+        if (!tileset) return prev;
+        return {
+          ...prev,
+          activeTileset: tileset,
+          selectedTiles: [], // Clear selection when switching tilesets
+        };
+      } else {
+        return {
+          ...prev,
+          activeTileset: tilesetId,
+        };
+      }
+    });
+  }, []);
+
+  // Remove tileset
+  const removeTileset = useCallback((tilesetId: string) => {
+    setState((prev) => {
+      if (!prev.tilemap || prev.tilemap.tilesets.length <= 1) return prev;
+      const newTilesets = prev.tilemap.tilesets.filter(
+        (t) => t.id !== tilesetId
+      );
+      const needNewActive = prev.activeTileset?.id === tilesetId;
+      return {
+        ...prev,
+        tilemap: {
+          ...prev.tilemap,
+          tilesets: newTilesets,
+        },
+        activeTileset: needNewActive ? newTilesets[0] : prev.activeTileset,
+        selectedTiles: needNewActive ? [] : prev.selectedTiles,
+      };
+    });
+  }, []);
+
   // Add new layer
   const addLayer = useCallback(
     (name: string, type: TilemapLayer["type"] = "tile") => {
@@ -209,11 +343,6 @@ export function useTilemapEditor() {
   // Set active layer
   const setActiveLayer = useCallback((layerId: string) => {
     setState((prev) => ({ ...prev, activeLayer: layerId }));
-  }, []);
-
-  // Set active tileset
-  const setActiveTileset = useCallback((tileset: Tileset | null) => {
-    setState((prev) => ({ ...prev, activeTileset: tileset }));
   }, []);
 
   // Select tiles for brush
@@ -1542,6 +1671,7 @@ export function useTilemapEditor() {
     toggleLayerVisibility,
     setActiveLayer,
     setActiveTileset,
+    removeTileset,
     selectTiles,
     selectTilesArea,
     paintTile,
@@ -1579,6 +1709,12 @@ export function useTilemapEditor() {
     deleteAutoTileRule,
     setActiveAutoTileRule,
     paintAutoTile,
+    // Undo/Redo functions
+    saveToHistory,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
   };
 }
 

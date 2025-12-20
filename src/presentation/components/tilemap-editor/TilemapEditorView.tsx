@@ -57,6 +57,15 @@ export function TilemapEditorView() {
     // Auto-tile
     autoTileRules,
     activeAutoTileRule,
+    // Undo/Redo
+    saveToHistory,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    // Multi-tileset
+    setActiveTileset,
+    removeTileset,
     createAutoTileRule,
     deleteAutoTileRule,
     setActiveAutoTileRule,
@@ -252,6 +261,22 @@ export function TilemapEditorView() {
         case "0":
           resetZoom();
           break;
+        case "z":
+          if (e.metaKey || e.ctrlKey) {
+            e.preventDefault();
+            if (e.shiftKey) {
+              redo();
+            } else {
+              undo();
+            }
+          }
+          break;
+        case "y":
+          if (e.metaKey || e.ctrlKey) {
+            e.preventDefault();
+            redo();
+          }
+          break;
       }
     };
 
@@ -268,7 +293,7 @@ export function TilemapEditorView() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [setTool, toggleGrid, zoomIn, zoomOut, resetZoom]);
+  }, [setTool, toggleGrid, zoomIn, zoomOut, resetZoom, undo, redo]);
 
   // Animation timer for animated tiles
   useEffect(() => {
@@ -583,6 +608,7 @@ export function TilemapEditorView() {
         e.preventDefault();
         const pos = getTilePos(e);
         if (pos) {
+          saveToHistory("Erase");
           setIsDrawing(true);
           setLastDrawPos(pos);
           eraseTile(pos.x, pos.y);
@@ -595,6 +621,14 @@ export function TilemapEditorView() {
       const pos = getTilePos(e);
       if (!pos) return;
 
+      // Save to history before starting to draw
+      saveToHistory(
+        tool === "eraser"
+          ? "Erase"
+          : tool === "bucket"
+          ? "Bucket Fill"
+          : "Paint"
+      );
       setIsDrawing(true);
       setLastDrawPos(pos);
 
@@ -636,6 +670,7 @@ export function TilemapEditorView() {
       bucketFill,
       pickTile,
       paintAutoTile,
+      saveToHistory,
     ]
   );
 
@@ -1368,6 +1403,23 @@ export function TilemapEditorView() {
               >
                 🎬
               </button>
+              <div className="w-px h-5 bg-gray-400 mx-1" />
+              <button
+                className="ie-button ie-button-sm px-1.5"
+                onClick={undo}
+                disabled={!canUndo}
+                title="Undo (Cmd+Z)"
+              >
+                ↩️
+              </button>
+              <button
+                className="ie-button ie-button-sm px-1.5"
+                onClick={redo}
+                disabled={!canRedo}
+                title="Redo (Cmd+Shift+Z)"
+              >
+                ↪️
+              </button>
               <div className="flex gap-0.5 items-center ml-auto">
                 <button
                   className="ie-button ie-button-sm px-1"
@@ -1647,6 +1699,79 @@ export function TilemapEditorView() {
                     {Math.floor(selectedTiles[0] / activeTileset.columns)})
                   </div>
                 </div>
+                {/* Tile Properties */}
+                {activeTileset.tiles[selectedTiles[0]] && (
+                  <div className="mt-2 pt-2 border-t border-gray-300 dark:border-gray-600">
+                    <div className="text-[10px] font-bold mb-1 text-center">
+                      Properties
+                    </div>
+                    <div className="space-y-1">
+                      <label className="flex items-center gap-1 text-xs cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={
+                            activeTileset.tiles[selectedTiles[0]]?.collision ||
+                            false
+                          }
+                          onChange={(e) => {
+                            const tile = activeTileset.tiles[selectedTiles[0]];
+                            if (tile) {
+                              tile.collision = e.target.checked;
+                            }
+                          }}
+                          className="w-3 h-3"
+                        />
+                        ⚠️ Collision
+                      </label>
+                      <label className="flex items-center gap-1 text-xs cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={
+                            activeTileset.tiles[selectedTiles[0]]?.animated ||
+                            false
+                          }
+                          onChange={(e) => {
+                            const tile = activeTileset.tiles[selectedTiles[0]];
+                            if (tile) {
+                              tile.animated = e.target.checked;
+                            }
+                          }}
+                          className="w-3 h-3"
+                        />
+                        🎬 Animated
+                      </label>
+                      {activeTileset.tiles[selectedTiles[0]]?.animated && (
+                        <div className="pl-4">
+                          <label className="text-[10px] block mb-0.5">
+                            Frames (comma-separated IDs):
+                          </label>
+                          <input
+                            type="text"
+                            className="ie-input w-full text-xs"
+                            placeholder="e.g., 1,2,3,4"
+                            defaultValue={
+                              activeTileset.tiles[
+                                selectedTiles[0]
+                              ]?.frames?.join(",") || ""
+                            }
+                            onBlur={(e) => {
+                              const tile =
+                                activeTileset.tiles[selectedTiles[0]];
+                              if (tile) {
+                                const frames = e.target.value
+                                  .split(",")
+                                  .map((s) => parseInt(s.trim()))
+                                  .filter((n) => !isNaN(n));
+                                tile.frames =
+                                  frames.length > 0 ? frames : undefined;
+                              }
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1665,6 +1790,53 @@ export function TilemapEditorView() {
                 <div>Layers: {tilemap.layers.length}</div>
                 <div>Tilesets: {tilemap.tilesets.length}</div>
               </div>
+            </div>
+          )}
+
+          {/* Multi-Tileset Selector */}
+          {tilemap && tilemap.tilesets.length > 0 && (
+            <div className="ie-groupbox mt-1">
+              <span className="ie-groupbox-title">
+                🎨 Tilesets ({tilemap.tilesets.length})
+              </span>
+              <div className="ie-panel-inset max-h-24 overflow-auto ie-scrollbar -mt-2">
+                {tilemap.tilesets.map((ts) => (
+                  <div
+                    key={ts.id}
+                    className={`flex items-center justify-between p-1.5 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 ${
+                      activeTileset?.id === ts.id
+                        ? "bg-blue-100 dark:bg-blue-900"
+                        : ""
+                    }`}
+                    onClick={() => setActiveTileset(ts.id)}
+                  >
+                    <span className="text-xs truncate flex-1">
+                      {ts.name}
+                      <span className="text-gray-500 ml-1">
+                        ({ts.columns}x{ts.rows})
+                      </span>
+                    </span>
+                    {tilemap.tilesets.length > 1 && (
+                      <button
+                        className="text-red-500 hover:text-red-700 px-1 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeTileset(ts.id);
+                        }}
+                        title="Remove tileset"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button
+                className="ie-button ie-button-sm w-full mt-1 text-xs"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                + Add Tileset
+              </button>
             </div>
           )}
         </div>
