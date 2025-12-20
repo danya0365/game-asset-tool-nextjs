@@ -53,6 +53,7 @@ const features: FeatureCard[] = [
     icon: "📤",
     title: "Multi-Export",
     description: "Export ไปยัง Cocos, Phaser, Unity และอื่นๆ",
+    href: "/multi-export",
   },
 ];
 

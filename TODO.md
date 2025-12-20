@@ -189,34 +189,35 @@
 
 ---
 
-## Phase 5: Spritesheet & Animation Editor
+## Phase 5: Spritesheet & Animation Editor ✅ (Basic Implementation)
 
 ### 5.1 Spritesheet Import/Creation
 
-- [ ] Import spritesheet image
-- [ ] Auto-detect frames (grid-based)
-- [ ] Manual frame definition
-- [ ] Frame reordering
+- [x] Import spritesheet image
+- [x] Auto-detect frames (grid-based)
+- [x] Manual frame definition
+- [x] Frame reordering (via selection order)
 - [ ] Frame duplication
 - [ ] Frame deletion
 
 ### 5.2 Animation System
 
-- [ ] Animation timeline
-- [ ] Play/Pause/Stop controls
-- [ ] Frame duration (per-frame timing)
-- [ ] Loop settings
+- [x] Animation timeline
+- [x] Play/Pause/Stop controls
+- [x] Frame duration (FPS-based timing)
+- [x] Loop settings
 - [ ] Ping-pong animation
 - [ ] Onion skinning (ghost frames)
-- [ ] Animation preview window
+- [x] Animation preview window
 
 ### 5.3 Animation Management
 
-- [ ] Multiple animations per spritesheet
-- [ ] Animation tags/names
+- [x] Multiple animations per spritesheet
+- [x] Animation tags/names
 - [ ] Animation states (Idle, Walk, Run, Jump, etc.)
 - [ ] Animation events/triggers
 - [ ] Animation blending preview
+- [x] Export animations to JSON
 
 ---
 
@@ -454,9 +455,43 @@ src/
 4. ✅ History System (undo/redo)
 5. ✅ Export PNG
 
-**Sprint 5: Atlas Packer Enhancements** 🔄 Current
+**Sprint 5: Atlas Packer Enhancements** ✅ Completed
 
-1. 🔄 Trim transparent pixels per sprite
+1. ✅ Trim transparent pixels per sprite
+
+**Sprint 6: Spritesheet Editor** ✅ Completed
+
+1. ✅ Create Spritesheet Editor page route
+2. ✅ Import spritesheet image with grid detection
+3. ✅ Frame selection (click/shift+click multi-select)
+4. ✅ Create animations from selected frames
+5. ✅ Animation preview with play/pause controls
+6. ✅ Timeline editor
+7. ✅ Export animations to JSON
+8. ✅ Link from Landing page
+
+**Sprint 7: Tilemap Freeform Enhancements** ✅ Completed
+
+1. ✅ Freeform mode drag-select multiple tiles
+2. ✅ Auto Draw from selection
+3. ✅ Reference Image upload with overlay
+4. ✅ Reference Image pan/scale/offset controls
+5. ✅ Auto Draw from Reference Image (tile matching)
+6. ✅ Building templates for preset sizes
+
+**Sprint 8: Multi-Export** ✅ Completed
+
+1. ✅ Create Multi-Export page route at /multi-export
+2. ✅ Support 9 export formats (Cocos, Phaser, Unity, Godot, LibGDX, CSS, Generic)
+3. ✅ Batch export with ZIP download
+4. ✅ Cocos Creator as default format
+5. ✅ Export settings (scale, padding, power of two, trim)
+6. ✅ Export log with progress indicator
+7. ✅ Link from Landing page
+
+**Sprint 9: Next Features** 🔄 Current
+
+1. 🔄 Add more export formats
 
 ---
 
