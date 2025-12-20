@@ -524,11 +524,23 @@ src/
 2. ✅ Multi-tileset support - Tileset selector, add/remove tilesets
 3. ✅ Tile properties editor - Collision, animated, animation frames
 
-**Sprint 14: Next Features** 🔄 Current
+**Sprint 14: UX Improvements** ✅ Completed
 
-1. 🔄 Keyboard shortcuts help dialog
-2. 🔄 Recent files in tilemap editor
-3. 🔄 Template maps (dungeon, platformer, top-down)
+1. ✅ Keyboard shortcuts help dialog - Press `?` to open, styled kbd keys
+2. ✅ Recent files in tilemap editor - Shows 5 recent projects in sidebar
+3. ✅ Template maps presets - Empty, Platformer, Top-Down, Dungeon, Puzzle, Large World
+
+**Sprint 15: Advanced Editing** ✅ Completed
+
+1. ✅ Auto-save tilemap to localStorage - Every 30 seconds, saved projects list
+2. ✅ Copy/Paste tile selection - Select tool (5/S), ⌘C/⌘V to copy/paste
+3. ✅ Flip/Rotate tiles - Toggle buttons in toolbar
+
+**Sprint 16: Next Features** 🔄 Current
+
+1. 🔄 Stamp brush (place multiple tiles at once)
+2. 🔄 Selection fill (fill selected area)
+3. 🔄 Layer opacity slider
 
 ---
 

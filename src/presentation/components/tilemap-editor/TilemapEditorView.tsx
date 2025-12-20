@@ -1,6 +1,13 @@
 "use client";
 
 import { TILE_SIZES } from "@/src/domain/types/tilemap";
+import {
+  autoSaveProject,
+  getAutoSavedProjects,
+  getRecentProjects,
+  loadAutoSavedProject,
+  type RecentProject,
+} from "@/src/infrastructure/storage/projectStorage";
 import { Portal } from "@/src/presentation/components/atoms/Portal";
 import { MainLayout } from "@/src/presentation/components/templates/MainLayout";
 import { useTilemapEditor } from "@/src/presentation/hooks/useTilemapEditor";
@@ -111,6 +118,37 @@ export function TilemapEditorView() {
     y: number;
   } | null>(null);
 
+  // Shortcuts help dialog
+  const [showShortcutsDialog, setShowShortcutsDialog] = useState(false);
+
+  // Recent projects
+  const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
+
+  // Auto-save state
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null);
+  const [savedProjects, setSavedProjects] = useState<string[]>([]);
+
+  // Copy/Paste state
+  const [clipboard, setClipboard] = useState<{
+    tiles: number[][];
+    width: number;
+    height: number;
+  } | null>(null);
+  const [selectionStart, setSelectionStart] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [selectionEnd, setSelectionEnd] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+
+  // Tile transform state
+  const [tileFlipH, setTileFlipH] = useState(false);
+  const [tileFlipV, setTileFlipV] = useState(false);
+  const [tileRotation, setTileRotation] = useState(0); // 0, 90, 180, 270
+
   // Layer rename state
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [editingLayerName, setEditingLayerName] = useState("");
@@ -217,6 +255,50 @@ export function TilemapEditorView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tilemap?.id]);
 
+  // Load recent projects and saved projects on mount
+  useEffect(() => {
+    setRecentProjects(getRecentProjects());
+    setSavedProjects(getAutoSavedProjects());
+  }, []);
+
+  // Auto-save tilemap every 30 seconds
+  useEffect(() => {
+    if (!autoSaveEnabled || !tilemap) return;
+
+    const saveInterval = setInterval(() => {
+      const projectName = tilemap.name || `tilemap-${tilemap.id}`;
+      autoSaveProject(projectName, {
+        tilemap: {
+          name: tilemap.name,
+          width: tilemap.width,
+          height: tilemap.height,
+          tileWidth: tilemap.tileWidth,
+          tileHeight: tilemap.tileHeight,
+          layers: tilemap.layers.map((layer) => ({
+            id: layer.id,
+            name: layer.name,
+            visible: layer.visible,
+            opacity: layer.opacity,
+            data: layer.data,
+            type: layer.type,
+          })),
+          tilesets: tilemap.tilesets.map((ts) => ({
+            name: ts.name,
+            imageUrl: ts.imageUrl,
+            tileWidth: ts.tileWidth,
+            tileHeight: ts.tileHeight,
+            columns: ts.columns,
+            rows: ts.rows,
+          })),
+        },
+      });
+      setLastSaveTime(new Date());
+      setSavedProjects(getAutoSavedProjects());
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(saveInterval);
+  }, [autoSaveEnabled, tilemap]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -243,6 +325,12 @@ export function TilemapEditorView() {
         case "4":
         case "i":
           setTool("picker");
+          break;
+        case "5":
+        case "s":
+          if (!(e.metaKey || e.ctrlKey)) {
+            setTool("select");
+          }
           break;
         case "h":
           toggleGrid();
@@ -277,6 +365,69 @@ export function TilemapEditorView() {
             redo();
           }
           break;
+        case "c":
+          if (
+            (e.metaKey || e.ctrlKey) &&
+            tilemap &&
+            activeLayer &&
+            selectionStart &&
+            selectionEnd
+          ) {
+            e.preventDefault();
+            const layer = tilemap.layers.find((l) => l.id === activeLayer);
+            if (layer) {
+              const minX = Math.min(selectionStart.x, selectionEnd.x);
+              const maxX = Math.max(selectionStart.x, selectionEnd.x);
+              const minY = Math.min(selectionStart.y, selectionEnd.y);
+              const maxY = Math.max(selectionStart.y, selectionEnd.y);
+              const width = maxX - minX + 1;
+              const height = maxY - minY + 1;
+              const tiles: number[][] = [];
+              for (let y = minY; y <= maxY; y++) {
+                const row: number[] = [];
+                for (let x = minX; x <= maxX; x++) {
+                  row.push(layer.data[y]?.[x] ?? -1);
+                }
+                tiles.push(row);
+              }
+              setClipboard({ tiles, width, height });
+            }
+          }
+          break;
+        case "v":
+          if (
+            (e.metaKey || e.ctrlKey) &&
+            tilemap &&
+            activeLayer &&
+            clipboard &&
+            hoverTilePos
+          ) {
+            e.preventDefault();
+            saveToHistory("Paste");
+            const layer = tilemap.layers.find((l) => l.id === activeLayer);
+            if (layer) {
+              for (let y = 0; y < clipboard.height; y++) {
+                for (let x = 0; x < clipboard.width; x++) {
+                  const targetX = hoverTilePos.x + x;
+                  const targetY = hoverTilePos.y + y;
+                  if (targetX < tilemap.width && targetY < tilemap.height) {
+                    paintTile(targetX, targetY, clipboard.tiles[y][x]);
+                  }
+                }
+              }
+            }
+          }
+          break;
+        case "?":
+        case "/":
+          if (e.shiftKey || e.key === "?") {
+            e.preventDefault();
+            setShowShortcutsDialog((prev) => !prev);
+          }
+          break;
+        case "Escape":
+          setShowShortcutsDialog(false);
+          break;
       }
     };
 
@@ -293,7 +444,23 @@ export function TilemapEditorView() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [setTool, toggleGrid, zoomIn, zoomOut, resetZoom, undo, redo]);
+  }, [
+    setTool,
+    toggleGrid,
+    zoomIn,
+    zoomOut,
+    resetZoom,
+    undo,
+    redo,
+    tilemap,
+    activeLayer,
+    selectionStart,
+    selectionEnd,
+    clipboard,
+    hoverTilePos,
+    paintTile,
+    saveToHistory,
+  ]);
 
   // Animation timer for animated tiles
   useEffect(() => {
@@ -621,6 +788,14 @@ export function TilemapEditorView() {
       const pos = getTilePos(e);
       if (!pos) return;
 
+      // Handle select tool
+      if (tool === "select") {
+        setSelectionStart(pos);
+        setSelectionEnd(pos);
+        setIsDrawing(true);
+        return;
+      }
+
       // Save to history before starting to draw
       saveToHistory(
         tool === "eraser"
@@ -697,6 +872,12 @@ export function TilemapEditorView() {
       }
 
       if (!isDrawing) return;
+
+      // Handle select tool drag
+      if (tool === "select" && pos) {
+        setSelectionEnd(pos);
+        return;
+      }
 
       if (
         !pos ||
@@ -1360,9 +1541,18 @@ export function TilemapEditorView() {
                     tool === "picker" ? "ie-button-active" : ""
                   }`}
                   onClick={() => setTool("picker")}
-                  title="Tile Picker"
+                  title="Tile Picker (4/I)"
                 >
                   💉
+                </button>
+                <button
+                  className={`ie-button ie-button-sm px-1.5 ${
+                    tool === "select" ? "ie-button-active" : ""
+                  }`}
+                  onClick={() => setTool("select")}
+                  title="Select (5/S) - Copy: ⌘C, Paste: ⌘V"
+                >
+                  ⬚
                 </button>
                 <button
                   className={`ie-button ie-button-sm px-1.5 ${
@@ -1382,6 +1572,38 @@ export function TilemapEditorView() {
                   disabled={!activeAutoTileRule}
                 >
                   🌿
+                </button>
+              </div>
+              <div className="w-px h-5 bg-gray-400 mx-1" />
+              {/* Tile Transform */}
+              <div className="flex gap-0.5 ie-panel-inset p-0.5">
+                <button
+                  className={`ie-button ie-button-sm px-1 ${
+                    tileFlipH ? "ie-button-active" : ""
+                  }`}
+                  onClick={() => setTileFlipH(!tileFlipH)}
+                  title="Flip Horizontal"
+                >
+                  ↔️
+                </button>
+                <button
+                  className={`ie-button ie-button-sm px-1 ${
+                    tileFlipV ? "ie-button-active" : ""
+                  }`}
+                  onClick={() => setTileFlipV(!tileFlipV)}
+                  title="Flip Vertical"
+                >
+                  ↕️
+                </button>
+                <button
+                  className="ie-button ie-button-sm px-1"
+                  onClick={() => setTileRotation((r) => (r + 90) % 360)}
+                  title={`Rotate (${tileRotation}°)`}
+                >
+                  🔄{" "}
+                  {tileRotation > 0 && (
+                    <span className="text-[10px]">{tileRotation}°</span>
+                  )}
                 </button>
               </div>
               <div className="w-px h-5 bg-gray-400 mx-1" />
@@ -1444,6 +1666,13 @@ export function TilemapEditorView() {
                   title="Reset View (1:1)"
                 >
                   1:1
+                </button>
+                <button
+                  className="ie-button ie-button-sm px-1.5 ml-1"
+                  onClick={() => setShowShortcutsDialog(true)}
+                  title="Keyboard Shortcuts (?)"
+                >
+                  ⌨️
                 </button>
               </div>
               {/* Cursor Position */}
@@ -1793,6 +2022,78 @@ export function TilemapEditorView() {
             </div>
           )}
 
+          {/* Recent Projects (show when no tilemap) */}
+          {!tilemap && recentProjects.length > 0 && (
+            <div className="ie-groupbox mt-1">
+              <span className="ie-groupbox-title">📂 Recent Projects</span>
+              <div className="ie-panel-inset max-h-32 overflow-auto ie-scrollbar -mt-2">
+                {recentProjects.slice(0, 5).map((project, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-1.5 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
+                    title={project.path}
+                  >
+                    <span className="text-xs truncate flex-1">
+                      📄 {project.name}
+                    </span>
+                    <span className="text-[10px] text-gray-400">
+                      {new Date(project.updatedAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Saved Projects (show when no tilemap) */}
+          {!tilemap && savedProjects.length > 0 && (
+            <div className="ie-groupbox mt-1">
+              <span className="ie-groupbox-title">💾 Auto-Saved</span>
+              <div className="ie-panel-inset max-h-32 overflow-auto ie-scrollbar -mt-2">
+                {savedProjects.slice(0, 5).map((name, index) => {
+                  const project = loadAutoSavedProject(name);
+                  return (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-1.5 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
+                      title={`Load ${name}`}
+                    >
+                      <span className="text-xs truncate flex-1">📄 {name}</span>
+                      {project?.updatedAt && (
+                        <span className="text-[10px] text-gray-400">
+                          {new Date(project.updatedAt).toLocaleTimeString()}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Auto-save Status (show when tilemap exists) */}
+          {tilemap && (
+            <div className="ie-groupbox mt-1">
+              <span className="ie-groupbox-title">💾 Auto-Save</span>
+              <div className="text-xs space-y-1 -mt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoSaveEnabled}
+                    onChange={(e) => setAutoSaveEnabled(e.target.checked)}
+                    className="w-3 h-3"
+                  />
+                  Enable auto-save
+                </label>
+                {lastSaveTime && (
+                  <div className="text-[10px] text-gray-500">
+                    Last saved: {lastSaveTime.toLocaleTimeString()}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Multi-Tileset Selector */}
           {tilemap && tilemap.tilesets.length > 0 && (
             <div className="ie-groupbox mt-1">
@@ -1857,6 +2158,74 @@ export function TilemapEditorView() {
                 </button>
               </div>
               <div className="ie-window-body p-3 space-y-3">
+                {/* Template Presets */}
+                <div>
+                  <label className="text-xs block mb-1 font-bold">
+                    📋 Template
+                  </label>
+                  <div className="grid grid-cols-2 gap-1">
+                    {[
+                      {
+                        name: "Empty",
+                        icon: "📄",
+                        width: 20,
+                        height: 15,
+                        tile: 16,
+                      },
+                      {
+                        name: "Platformer",
+                        icon: "🎮",
+                        width: 30,
+                        height: 17,
+                        tile: 16,
+                      },
+                      {
+                        name: "Top-Down",
+                        icon: "🗺️",
+                        width: 20,
+                        height: 20,
+                        tile: 16,
+                      },
+                      {
+                        name: "Dungeon",
+                        icon: "🏰",
+                        width: 25,
+                        height: 25,
+                        tile: 16,
+                      },
+                      {
+                        name: "Puzzle",
+                        icon: "🧩",
+                        width: 10,
+                        height: 10,
+                        tile: 32,
+                      },
+                      {
+                        name: "Large World",
+                        icon: "🌍",
+                        width: 50,
+                        height: 50,
+                        tile: 16,
+                      },
+                    ].map((template) => (
+                      <button
+                        key={template.name}
+                        className="ie-button text-xs text-left p-1.5"
+                        onClick={() => {
+                          setNewMapWidth(template.width);
+                          setNewMapHeight(template.height);
+                          setNewTileSize(template.tile);
+                        }}
+                      >
+                        {template.icon} {template.name}
+                        <span className="text-gray-400 ml-1 text-[10px]">
+                          {template.width}x{template.height}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs block mb-1">Width (tiles)</label>
@@ -3467,6 +3836,142 @@ export function TilemapEditorView() {
                   >
                     💾 Export
                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Portal>
+      )}
+
+      {/* Keyboard Shortcuts Help Dialog */}
+      {showShortcutsDialog && (
+        <Portal>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="ie-window w-96 max-h-[80vh] overflow-hidden">
+              <div className="ie-titlebar">
+                <span className="ie-titlebar-text">⌨️ Keyboard Shortcuts</span>
+                <button
+                  className="ie-titlebar-btn ie-titlebar-close"
+                  onClick={() => setShowShortcutsDialog(false)}
+                >
+                  <span>×</span>
+                </button>
+              </div>
+              <div className="ie-window-body p-3 overflow-auto max-h-[60vh]">
+                <div className="space-y-3">
+                  {/* Tools */}
+                  <div>
+                    <div className="font-bold text-sm mb-1">🛠️ Tools</div>
+                    <div className="grid grid-cols-2 gap-1 text-xs">
+                      <div className="flex justify-between">
+                        <span>Pencil</span>
+                        <kbd className="ie-kbd">1 / B</kbd>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Eraser</span>
+                        <kbd className="ie-kbd">2 / E</kbd>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Bucket Fill</span>
+                        <kbd className="ie-kbd">3 / G</kbd>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Picker</span>
+                        <kbd className="ie-kbd">4 / I</kbd>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Navigation */}
+                  <div>
+                    <div className="font-bold text-sm mb-1">🧭 Navigation</div>
+                    <div className="grid grid-cols-2 gap-1 text-xs">
+                      <div className="flex justify-between">
+                        <span>Pan</span>
+                        <kbd className="ie-kbd">Space + Drag</kbd>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Zoom In</span>
+                        <kbd className="ie-kbd">+ / =</kbd>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Zoom Out</span>
+                        <kbd className="ie-kbd">-</kbd>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Reset Zoom</span>
+                        <kbd className="ie-kbd">0</kbd>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* View */}
+                  <div>
+                    <div className="font-bold text-sm mb-1">👁️ View</div>
+                    <div className="grid grid-cols-2 gap-1 text-xs">
+                      <div className="flex justify-between">
+                        <span>Toggle Grid</span>
+                        <kbd className="ie-kbd">H</kbd>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Edit */}
+                  <div>
+                    <div className="font-bold text-sm mb-1">✏️ Edit</div>
+                    <div className="grid grid-cols-2 gap-1 text-xs">
+                      <div className="flex justify-between">
+                        <span>Undo</span>
+                        <kbd className="ie-kbd">⌘Z</kbd>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Redo</span>
+                        <kbd className="ie-kbd">⌘⇧Z</kbd>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Erase (while drawing)</span>
+                        <kbd className="ie-kbd">Right Click</kbd>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Mouse */}
+                  <div>
+                    <div className="font-bold text-sm mb-1">🖱️ Mouse</div>
+                    <div className="grid grid-cols-2 gap-1 text-xs">
+                      <div className="flex justify-between">
+                        <span>Paint</span>
+                        <kbd className="ie-kbd">Left Click</kbd>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Erase</span>
+                        <kbd className="ie-kbd">Right Click</kbd>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Pan</span>
+                        <kbd className="ie-kbd">Middle Click</kbd>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Multi-select</span>
+                        <kbd className="ie-kbd">Shift + Click</kbd>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Help */}
+                  <div>
+                    <div className="font-bold text-sm mb-1">❓ Help</div>
+                    <div className="grid grid-cols-2 gap-1 text-xs">
+                      <div className="flex justify-between">
+                        <span>This dialog</span>
+                        <kbd className="ie-kbd">?</kbd>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Close dialog</span>
+                        <kbd className="ie-kbd">Esc</kbd>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
