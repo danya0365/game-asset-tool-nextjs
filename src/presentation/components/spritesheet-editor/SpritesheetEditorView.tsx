@@ -44,6 +44,11 @@ export default function SpritesheetEditorView() {
   const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
   const [fps, setFps] = useState(12);
 
+  // Onion skinning
+  const [onionSkinEnabled, setOnionSkinEnabled] = useState(false);
+  const [onionSkinFrames, setOnionSkinFrames] = useState(2); // Number of ghost frames
+  const [onionSkinOpacity, setOnionSkinOpacity] = useState(0.3);
+
   // Canvas state
   const [zoom, setZoom] = useState(2);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -183,6 +188,51 @@ export default function SpritesheetEditorView() {
 
     ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw onion skin frames (previous frames in red/pink tint)
+    if (onionSkinEnabled) {
+      for (let i = 1; i <= onionSkinFrames; i++) {
+        const prevIndex = currentFrameIndex - i;
+        if (prevIndex >= 0 && prevIndex < currentAnimation.frames.length) {
+          const prevFrame = currentAnimation.frames[prevIndex];
+          ctx.globalAlpha = onionSkinOpacity / i;
+          ctx.drawImage(
+            spritesheetImage,
+            prevFrame.x,
+            prevFrame.y,
+            prevFrame.width,
+            prevFrame.height,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+          );
+        }
+      }
+
+      // Draw onion skin frames (next frames in blue/cyan tint)
+      for (let i = 1; i <= onionSkinFrames; i++) {
+        const nextIndex = currentFrameIndex + i;
+        if (nextIndex >= 0 && nextIndex < currentAnimation.frames.length) {
+          const nextFrame = currentAnimation.frames[nextIndex];
+          ctx.globalAlpha = onionSkinOpacity / i;
+          ctx.drawImage(
+            spritesheetImage,
+            nextFrame.x,
+            nextFrame.y,
+            nextFrame.width,
+            nextFrame.height,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+          );
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // Draw current frame
     ctx.drawImage(
       spritesheetImage,
       frame.x,
@@ -194,7 +244,14 @@ export default function SpritesheetEditorView() {
       canvas.width,
       canvas.height
     );
-  }, [spritesheetImage, currentAnimation, currentFrameIndex]);
+  }, [
+    spritesheetImage,
+    currentAnimation,
+    currentFrameIndex,
+    onionSkinEnabled,
+    onionSkinFrames,
+    onionSkinOpacity,
+  ]);
 
   // Handle frame click
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -437,6 +494,54 @@ export default function SpritesheetEditorView() {
                     {currentAnimation.frames.length}
                   </div>
                 )}
+              </div>
+
+              {/* Onion Skinning Controls */}
+              <div className="ie-groupbox mt-2">
+                <span className="ie-groupbox-title">👻 Onion Skin</span>
+                <div className="space-y-1 -mt-2 text-xs">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={onionSkinEnabled}
+                      onChange={(e) => setOnionSkinEnabled(e.target.checked)}
+                    />
+                    Enable Onion Skin
+                  </label>
+                  {onionSkinEnabled && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span>Frames:</span>
+                        <input
+                          type="number"
+                          className="ie-input w-12 text-xs"
+                          value={onionSkinFrames}
+                          onChange={(e) =>
+                            setOnionSkinFrames(parseInt(e.target.value) || 1)
+                          }
+                          min={1}
+                          max={5}
+                        />
+                      </div>
+                      <div>
+                        <span>
+                          Opacity: {Math.round(onionSkinOpacity * 100)}%
+                        </span>
+                        <input
+                          type="range"
+                          className="w-full"
+                          value={onionSkinOpacity}
+                          onChange={(e) =>
+                            setOnionSkinOpacity(parseFloat(e.target.value))
+                          }
+                          min={0.1}
+                          max={0.8}
+                          step={0.1}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 

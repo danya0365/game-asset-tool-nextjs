@@ -500,11 +500,17 @@ src/
 7. ✅ Tilemap Import JSON (Custom, Tiled, Cocos, Phaser formats)
 8. ✅ Link from Landing page
 
-**Sprint 10: Next Features** 🔄 Current
+**Sprint 10: Advanced Features** ✅ Completed
 
-1. 🔄 Auto-tile rules (terrain matching)
-2. 🔄 Spritesheet onion skinning
-3. 🔄 Project management (Save/Load)
+1. ✅ Auto-tile rules (terrain matching) - 4x4 tile selection, bitmask painting
+2. ✅ Spritesheet onion skinning - Ghost frames with opacity control
+3. ✅ Project management - Storage utility, Recent projects, Save/Load .gat files
+
+**Sprint 11: Next Features** 🔄 Current
+
+1. 🔄 Seamless texture preview
+2. 🔄 Mini-map preview for tilemap
+3. 🔄 Animation states (Idle, Walk, Run)
 
 ---
 

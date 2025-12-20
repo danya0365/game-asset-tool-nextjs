@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  AutoTileRule,
   BrushTile,
   TileGroup,
   TileGroupPart,
@@ -30,6 +31,8 @@ export function useTilemapEditor() {
     brushPattern: null,
     tileGroups: [],
     activeTileGroup: null,
+    autoTileRules: [],
+    activeAutoTileRule: null,
     tool: "pencil",
     showGrid: true,
     zoom: 1,
@@ -1324,6 +1327,212 @@ export function useTilemapEditor() {
     });
   }, []);
 
+  // Create auto-tile rule from selected tiles (expects 16 tiles in specific order)
+  const createAutoTileRule = useCallback(
+    (name: string, tileIds: number[], terrainId: number) => {
+      if (tileIds.length < 16) {
+        console.warn("Auto-tile requires 16 tiles");
+        return;
+      }
+
+      const rule: AutoTileRule = {
+        id: generateId(),
+        name,
+        terrainId,
+        tiles: {
+          single: tileIds[0], // isolated
+          endN: tileIds[1], // only north connected
+          endE: tileIds[2], // only east connected
+          cornerNE: tileIds[3], // north + east
+          endS: tileIds[4], // only south connected
+          pipeV: tileIds[5], // north + south (vertical)
+          cornerSE: tileIds[6], // south + east
+          edgeW: tileIds[7], // all except west (T-junction)
+          endW: tileIds[8], // only west connected
+          cornerNW: tileIds[9], // north + west
+          pipeH: tileIds[10], // east + west (horizontal)
+          edgeS: tileIds[11], // all except south
+          cornerSW: tileIds[12], // south + west
+          edgeE: tileIds[13], // all except east
+          edgeN: tileIds[14], // all except north
+          center: tileIds[15], // all sides connected
+        },
+      };
+
+      setState((prev) => ({
+        ...prev,
+        autoTileRules: [...prev.autoTileRules, rule],
+        activeAutoTileRule: rule,
+      }));
+    },
+    []
+  );
+
+  // Delete auto-tile rule
+  const deleteAutoTileRule = useCallback((ruleId: string) => {
+    setState((prev) => ({
+      ...prev,
+      autoTileRules: prev.autoTileRules.filter((r) => r.id !== ruleId),
+      activeAutoTileRule:
+        prev.activeAutoTileRule?.id === ruleId ? null : prev.activeAutoTileRule,
+    }));
+  }, []);
+
+  // Set active auto-tile rule
+  const setActiveAutoTileRule = useCallback((rule: AutoTileRule | null) => {
+    setState((prev) => ({ ...prev, activeAutoTileRule: rule }));
+  }, []);
+
+  // Get tile based on neighbor bitmask (4-bit: N=1, E=2, S=4, W=8)
+  const getTileFromBitmask = useCallback(
+    (rule: AutoTileRule, bitmask: number): number => {
+      const { tiles } = rule;
+      switch (bitmask) {
+        case 0b0000:
+          return tiles.single;
+        case 0b0001:
+          return tiles.endN;
+        case 0b0010:
+          return tiles.endE;
+        case 0b0011:
+          return tiles.cornerNE;
+        case 0b0100:
+          return tiles.endS;
+        case 0b0101:
+          return tiles.pipeV;
+        case 0b0110:
+          return tiles.cornerSE;
+        case 0b0111:
+          return tiles.edgeW;
+        case 0b1000:
+          return tiles.endW;
+        case 0b1001:
+          return tiles.cornerNW;
+        case 0b1010:
+          return tiles.pipeH;
+        case 0b1011:
+          return tiles.edgeS;
+        case 0b1100:
+          return tiles.cornerSW;
+        case 0b1101:
+          return tiles.edgeE;
+        case 0b1110:
+          return tiles.edgeN;
+        case 0b1111:
+          return tiles.center;
+        default:
+          return tiles.single;
+      }
+    },
+    []
+  );
+
+  // Check if a tile belongs to an auto-tile rule
+  const isAutoTileTerrain = useCallback(
+    (tileId: number, rule: AutoTileRule): boolean => {
+      const { tiles } = rule;
+      return Object.values(tiles).includes(tileId);
+    },
+    []
+  );
+
+  // Calculate neighbor bitmask for auto-tile
+  const calculateBitmask = useCallback(
+    (
+      x: number,
+      y: number,
+      layerData: number[][],
+      rule: AutoTileRule
+    ): number => {
+      let bitmask = 0;
+      const height = layerData.length;
+      const width = layerData[0]?.length || 0;
+
+      // Check north (bit 0)
+      if (y > 0 && isAutoTileTerrain(layerData[y - 1][x], rule))
+        bitmask |= 0b0001;
+      // Check east (bit 1)
+      if (x < width - 1 && isAutoTileTerrain(layerData[y][x + 1], rule))
+        bitmask |= 0b0010;
+      // Check south (bit 2)
+      if (y < height - 1 && isAutoTileTerrain(layerData[y + 1][x], rule))
+        bitmask |= 0b0100;
+      // Check west (bit 3)
+      if (x > 0 && isAutoTileTerrain(layerData[y][x - 1], rule))
+        bitmask |= 0b1000;
+
+      return bitmask;
+    },
+    [isAutoTileTerrain]
+  );
+
+  // Paint with auto-tile and update neighbors
+  const paintAutoTile = useCallback(
+    (x: number, y: number) => {
+      setState((prev) => {
+        if (!prev.tilemap || !prev.activeLayer || !prev.activeAutoTileRule)
+          return prev;
+
+        const rule = prev.activeAutoTileRule;
+        const layerIndex = prev.tilemap.layers.findIndex(
+          (l) => l.id === prev.activeLayer
+        );
+        if (layerIndex === -1) return prev;
+
+        const layer = prev.tilemap.layers[layerIndex];
+        if (
+          x < 0 ||
+          x >= prev.tilemap.width ||
+          y < 0 ||
+          y >= prev.tilemap.height
+        )
+          return prev;
+
+        // Create a copy of the layer data
+        const newData = layer.data.map((row) => [...row]);
+
+        // Place the terrain marker first
+        newData[y][x] = rule.tiles.center; // Temporary, will be updated
+
+        // Update the placed tile and all neighbors
+        const tilesToUpdate = [
+          { x, y },
+          { x, y: y - 1 }, // north
+          { x: x + 1, y }, // east
+          { x, y: y + 1 }, // south
+          { x: x - 1, y }, // west
+        ];
+
+        for (const pos of tilesToUpdate) {
+          if (
+            pos.x >= 0 &&
+            pos.x < prev.tilemap.width &&
+            pos.y >= 0 &&
+            pos.y < prev.tilemap.height
+          ) {
+            // Only update if this tile is part of the auto-tile terrain
+            if (
+              isAutoTileTerrain(newData[pos.y][pos.x], rule) ||
+              (pos.x === x && pos.y === y)
+            ) {
+              const bitmask = calculateBitmask(pos.x, pos.y, newData, rule);
+              newData[pos.y][pos.x] = getTileFromBitmask(rule, bitmask);
+            }
+          }
+        }
+
+        const newLayers = [...prev.tilemap.layers];
+        newLayers[layerIndex] = { ...layer, data: newData };
+
+        return {
+          ...prev,
+          tilemap: { ...prev.tilemap, layers: newLayers },
+        };
+      });
+    },
+    [calculateBitmask, getTileFromBitmask, isAutoTileTerrain]
+  );
+
   return {
     ...state,
     createTilemap,
@@ -1363,6 +1572,13 @@ export function useTilemapEditor() {
     deleteTileGroup,
     setActiveTileGroup,
     paintTileGroup,
+    // Auto-tile functions
+    autoTileRules: state.autoTileRules,
+    activeAutoTileRule: state.activeAutoTileRule,
+    createAutoTileRule,
+    deleteAutoTileRule,
+    setActiveAutoTileRule,
+    paintAutoTile,
   };
 }
 

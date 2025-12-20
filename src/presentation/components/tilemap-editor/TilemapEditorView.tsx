@@ -54,6 +54,13 @@ export function TilemapEditorView() {
     deleteTileGroup,
     setActiveTileGroup,
     paintTileGroup,
+    // Auto-tile
+    autoTileRules,
+    activeAutoTileRule,
+    createAutoTileRule,
+    deleteAutoTileRule,
+    setActiveAutoTileRule,
+    paintAutoTile,
   } = useTilemapEditor();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -490,6 +497,8 @@ export function TilemapEditorView() {
         bucketFill(pos.x, pos.y, selectedTiles[0]);
       } else if (tool === "picker") {
         pickTile(pos.x, pos.y);
+      } else if (tool === "autotile" && activeAutoTileRule) {
+        paintAutoTile(pos.x, pos.y);
       }
     },
     [
@@ -498,6 +507,7 @@ export function TilemapEditorView() {
       brushPattern,
       activeTileGroup,
       buildingFloorCount,
+      activeAutoTileRule,
       pan,
       isSpaceDown,
       getTilePos,
@@ -507,6 +517,7 @@ export function TilemapEditorView() {
       eraseTile,
       bucketFill,
       pickTile,
+      paintAutoTile,
     ]
   );
 
@@ -553,6 +564,8 @@ export function TilemapEditorView() {
         }
       } else if (tool === "eraser" || e.buttons === 2) {
         eraseTile(pos.x, pos.y);
+      } else if (tool === "autotile" && activeAutoTileRule) {
+        paintAutoTile(pos.x, pos.y);
       }
     },
     [
@@ -562,10 +575,12 @@ export function TilemapEditorView() {
       tool,
       selectedTiles,
       brushPattern,
+      activeAutoTileRule,
       panStart,
       getTilePos,
       paintTile,
       paintBrush,
+      paintAutoTile,
       eraseTile,
       setPan,
       tilemap,
@@ -1189,6 +1204,16 @@ export function TilemapEditorView() {
                 >
                   ✋
                 </button>
+                <button
+                  className={`ie-button ie-button-sm px-1.5 ${
+                    tool === "autotile" ? "ie-button-active" : ""
+                  }`}
+                  onClick={() => setTool("autotile")}
+                  title="Auto-tile (Terrain)"
+                  disabled={!activeAutoTileRule}
+                >
+                  🌿
+                </button>
               </div>
               <div className="w-px h-5 bg-gray-400 mx-1" />
               <button
@@ -1326,6 +1351,74 @@ export function TilemapEditorView() {
               >
                 💾 Export
               </button>
+            </div>
+          </div>
+
+          {/* Auto-tile Panel */}
+          <div className="ie-groupbox mt-1">
+            <span className="ie-groupbox-title">🌿 Auto-tile</span>
+            <div className="space-y-1 -mt-2">
+              {autoTileRules.length > 0 ? (
+                <div className="space-y-1">
+                  {autoTileRules.map((rule) => (
+                    <div
+                      key={rule.id}
+                      className={`flex items-center justify-between p-1 text-xs cursor-pointer rounded ${
+                        activeAutoTileRule?.id === rule.id
+                          ? "bg-blue-100 dark:bg-blue-900 border border-blue-500"
+                          : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                      }`}
+                      onClick={() => {
+                        setActiveAutoTileRule(
+                          activeAutoTileRule?.id === rule.id ? null : rule
+                        );
+                        if (activeAutoTileRule?.id !== rule.id) {
+                          setTool("autotile");
+                        }
+                      }}
+                    >
+                      <span>🌿 {rule.name}</span>
+                      <button
+                        className="text-red-500 hover:text-red-700 px-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteAutoTileRule(rule.id);
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-xs text-gray-500 text-center py-1">
+                  No auto-tile rules
+                </div>
+              )}
+              <button
+                className="ie-button ie-button-sm w-full text-xs"
+                onClick={() => {
+                  // Create auto-tile from 4x4 selection (16 tiles)
+                  if (selectedTiles.length >= 16) {
+                    const name = `Terrain ${autoTileRules.length + 1}`;
+                    createAutoTileRule(
+                      name,
+                      selectedTiles.slice(0, 16),
+                      selectedTiles[0]
+                    );
+                  } else {
+                    alert(
+                      "เลือก 16 tiles (4x4) จาก tileset เพื่อสร้าง auto-tile rule"
+                    );
+                  }
+                }}
+                disabled={selectedTiles.length < 16}
+              >
+                ➕ Create from 4x4 Selection
+              </button>
+              <div className="text-[10px] text-gray-500 text-center">
+                เลือก 16 tiles (4x4) แล้วกด Create
+              </div>
             </div>
           </div>
 
