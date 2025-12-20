@@ -68,6 +68,10 @@ export function TilemapEditorView() {
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importFileInputRef = useRef<HTMLInputElement>(null);
+  const minimapCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Mini-map state
+  const [showMinimap, setShowMinimap] = useState(true);
 
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
@@ -428,6 +432,68 @@ export function TilemapEditorView() {
 
     return () => clearTimeout(timer);
   }, [showTileGroupDialog, activeTileset, tileGroupMode]);
+
+  // Draw mini-map
+  useEffect(() => {
+    if (!tilemap || !showMinimap || !minimapCanvasRef.current) return;
+
+    const canvas = minimapCanvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Calculate mini-map scale to fit in sidebar
+    const maxWidth = 180;
+    const scale = Math.min(maxWidth / (tilemap.width * tilemap.tileWidth), 1);
+
+    canvas.width = tilemap.width * tilemap.tileWidth * scale;
+    canvas.height = tilemap.height * tilemap.tileHeight * scale;
+
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = tilemap.backgroundColor || "#1a1a2e";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw each visible layer
+    tilemap.layers
+      .filter((layer) => layer.visible)
+      .forEach((layer) => {
+        layer.data.forEach((row, y) => {
+          row.forEach((tileId, x) => {
+            if (tileId >= 0 && activeTileset?.image) {
+              const srcX =
+                (tileId % activeTileset.columns) * activeTileset.tileWidth;
+              const srcY =
+                Math.floor(tileId / activeTileset.columns) *
+                activeTileset.tileHeight;
+
+              ctx.drawImage(
+                activeTileset.image,
+                srcX,
+                srcY,
+                activeTileset.tileWidth,
+                activeTileset.tileHeight,
+                x * tilemap.tileWidth * scale,
+                y * tilemap.tileHeight * scale,
+                tilemap.tileWidth * scale,
+                tilemap.tileHeight * scale
+              );
+            }
+          });
+        });
+      });
+
+    // Draw viewport indicator
+    if (containerRef.current) {
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const viewportX = (-pan.x / zoom) * scale;
+      const viewportY = (-pan.y / zoom) * scale;
+      const viewportW = (containerRect.width / zoom) * scale;
+      const viewportH = (containerRect.height / zoom) * scale;
+
+      ctx.strokeStyle = "#00ff00";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(viewportX, viewportY, viewportW, viewportH);
+    }
+  }, [tilemap, activeTileset, showMinimap, pan, zoom]);
 
   // Get tile position from mouse event
   const getTilePos = useCallback(
@@ -1421,6 +1487,43 @@ export function TilemapEditorView() {
               </div>
             </div>
           </div>
+
+          {/* Mini-map */}
+          {tilemap && showMinimap && (
+            <div className="ie-groupbox mt-1">
+              <span className="ie-groupbox-title flex items-center justify-between">
+                <span>🗺️ Mini-map</span>
+                <button
+                  className="text-xs text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowMinimap(false)}
+                >
+                  ✕
+                </button>
+              </span>
+              <div className="ie-panel-inset p-1 -mt-2">
+                <canvas
+                  ref={minimapCanvasRef}
+                  className="w-full"
+                  style={{
+                    maxHeight: 100,
+                    imageRendering: "pixelated",
+                    backgroundColor: tilemap.backgroundColor || "#1a1a2e",
+                  }}
+                />
+                <div className="text-[10px] text-gray-500 text-center mt-1">
+                  {tilemap.width}x{tilemap.height} tiles
+                </div>
+              </div>
+            </div>
+          )}
+          {tilemap && !showMinimap && (
+            <button
+              className="ie-button ie-button-sm w-full mt-1 text-xs"
+              onClick={() => setShowMinimap(true)}
+            >
+              🗺️ Show Mini-map
+            </button>
+          )}
 
           {/* Selected Tile Preview */}
           {selectedTiles.length > 0 && activeTileset && (
