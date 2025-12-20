@@ -141,6 +141,9 @@ export function TilemapEditorView() {
     endY: number;
   } | null>(null);
   const [isFreeformSelecting, setIsFreeformSelecting] = useState(false);
+  const [freeformArrangeMode, setFreeformArrangeMode] = useState<
+    "normal" | "transpose"
+  >("normal");
   const tileGroupCanvasRef = useRef<HTMLCanvasElement>(null);
   const [tileGroupSelection, setTileGroupSelection] = useState<{
     startX: number;
@@ -2045,10 +2048,37 @@ export function TilemapEditorView() {
                           />
                         )}
                       </div>
+                      {/* Arrange Mode Selection */}
+                      {freeformAreaSelection && (
+                        <div className="flex gap-1 mt-2">
+                          <button
+                            className={`ie-button flex-1 text-xs ${
+                              freeformArrangeMode === "normal"
+                                ? "ie-button-active"
+                                : ""
+                            }`}
+                            onClick={() => setFreeformArrangeMode("normal")}
+                            title="วางตามต้นฉบับ"
+                          >
+                            📋 ตามต้นฉบับ
+                          </button>
+                          <button
+                            className={`ie-button flex-1 text-xs ${
+                              freeformArrangeMode === "transpose"
+                                ? "ie-button-active"
+                                : ""
+                            }`}
+                            onClick={() => setFreeformArrangeMode("transpose")}
+                            title="สลับแถว↔คอลัมน์ (เหมาะสำหรับบ้าน)"
+                          >
+                            🔄 Transpose (บ้าน)
+                          </button>
+                        </div>
+                      )}
                       {/* Auto Draw Button */}
                       {freeformAreaSelection && (
                         <button
-                          className="ie-button w-full mt-2 text-sm font-bold bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600"
+                          className="ie-button w-full mt-2 text-sm font-bold bg-purple-600 text-white hover:bg-purple-700"
                           onClick={() => {
                             if (!freeformAreaSelection) return;
                             const minX = Math.min(
@@ -2067,35 +2097,82 @@ export function TilemapEditorView() {
                               freeformAreaSelection.startY,
                               freeformAreaSelection.endY
                             );
-                            const width = maxX - minX + 1;
-                            const height = maxY - minY + 1;
+                            const srcWidth = maxX - minX + 1;
+                            const srcHeight = maxY - minY + 1;
 
-                            // Auto-resize canvas and fill with selected tiles
-                            setFreeformSize({ width, height });
-                            const newTiles: (number | null)[][] = [];
-                            for (let y = 0; y < height; y++) {
-                              const row: (number | null)[] = [];
-                              for (let x = 0; x < width; x++) {
+                            // Collect source tiles
+                            const sourceTiles: number[][] = [];
+                            for (let y = 0; y < srcHeight; y++) {
+                              const row: number[] = [];
+                              for (let x = 0; x < srcWidth; x++) {
                                 const tileId =
                                   (minY + y) * activeTileset.columns +
                                   (minX + x);
                                 row.push(tileId);
                               }
-                              newTiles.push(row);
+                              sourceTiles.push(row);
                             }
+
+                            let newTiles: (number | null)[][];
+                            let finalWidth: number;
+                            let finalHeight: number;
+
+                            if (freeformArrangeMode === "transpose") {
+                              // Transpose: swap rows and columns
+                              // Original [row][col] becomes [col][row]
+                              finalWidth = srcHeight;
+                              finalHeight = srcWidth;
+                              newTiles = [];
+                              for (let newY = 0; newY < finalHeight; newY++) {
+                                const row: (number | null)[] = [];
+                                for (let newX = 0; newX < finalWidth; newX++) {
+                                  // newX was old row, newY was old col
+                                  row.push(sourceTiles[newX][newY]);
+                                }
+                                newTiles.push(row);
+                              }
+                            } else {
+                              // Normal: copy as-is
+                              finalWidth = srcWidth;
+                              finalHeight = srcHeight;
+                              newTiles = sourceTiles;
+                            }
+
+                            setFreeformSize({
+                              width: finalWidth,
+                              height: finalHeight,
+                            });
                             setFreeformTiles(newTiles);
                           }}
                         >
-                          ✨ Auto Draw (
-                          {Math.abs(
-                            freeformAreaSelection.endX -
-                              freeformAreaSelection.startX
-                          ) + 1}
-                          x
-                          {Math.abs(
-                            freeformAreaSelection.endY -
-                              freeformAreaSelection.startY
-                          ) + 1}{" "}
+                          ✨ Auto Draw{" "}
+                          {freeformArrangeMode === "transpose"
+                            ? "(Transpose) "
+                            : ""}
+                          (
+                          {freeformArrangeMode === "transpose"
+                            ? `${
+                                Math.abs(
+                                  freeformAreaSelection.endY -
+                                    freeformAreaSelection.startY
+                                ) + 1
+                              }x${
+                                Math.abs(
+                                  freeformAreaSelection.endX -
+                                    freeformAreaSelection.startX
+                                ) + 1
+                              }`
+                            : `${
+                                Math.abs(
+                                  freeformAreaSelection.endX -
+                                    freeformAreaSelection.startX
+                                ) + 1
+                              }x${
+                                Math.abs(
+                                  freeformAreaSelection.endY -
+                                    freeformAreaSelection.startY
+                                ) + 1
+                              }`}{" "}
                           tiles)
                         </button>
                       )}
