@@ -135,6 +135,10 @@ export function TilemapEditorView() {
     "json" | "tiled" | "csv" | "phaser" | "godot" | "ldtk" | "cocos"
   >("cocos");
 
+  // Animated tiles state
+  const [animatedTilesEnabled, setAnimatedTilesEnabled] = useState(true);
+  const [animationFrame, setAnimationFrame] = useState(0);
+
   // Tile Group dialog state
   const [showTileGroupDialog, setShowTileGroupDialog] = useState(false);
   const [tileGroupName, setTileGroupName] = useState("");
@@ -266,6 +270,17 @@ export function TilemapEditorView() {
     };
   }, [setTool, toggleGrid, zoomIn, zoomOut, resetZoom]);
 
+  // Animation timer for animated tiles
+  useEffect(() => {
+    if (!animatedTilesEnabled) return;
+
+    const interval = setInterval(() => {
+      setAnimationFrame((f) => (f + 1) % 60); // 60 frames cycle
+    }, 150); // ~6-7 FPS for tile animations
+
+    return () => clearInterval(interval);
+  }, [animatedTilesEnabled]);
+
   // Render tilemap canvas
   useEffect(() => {
     if (!canvasRef.current || !tilemap) return;
@@ -298,12 +313,49 @@ export function TilemapEditorView() {
           const tileId = layer.data[y][x];
           if (tileId === -1) continue;
 
+          // Special rendering for collision layer
+          if (layer.type === "collision") {
+            // Draw red semi-transparent collision box
+            ctx.fillStyle = "rgba(255, 0, 0, 0.4)";
+            ctx.fillRect(
+              x * tilemap.tileWidth,
+              y * tilemap.tileHeight,
+              tilemap.tileWidth,
+              tilemap.tileHeight
+            );
+            // Draw border
+            ctx.strokeStyle = "rgba(255, 0, 0, 0.8)";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(
+              x * tilemap.tileWidth + 0.5,
+              y * tilemap.tileHeight + 0.5,
+              tilemap.tileWidth - 1,
+              tilemap.tileHeight - 1
+            );
+            continue;
+          }
+
           // Find tile in active tileset
           const tileset = activeTileset || tilemap.tilesets[0];
           if (!tileset?.image) continue;
 
-          const tile = tileset.tiles[tileId];
+          let tile = tileset.tiles[tileId];
           if (!tile) continue;
+
+          // Handle animated tiles
+          if (
+            animatedTilesEnabled &&
+            tile.animated &&
+            tile.frames &&
+            tile.frames.length > 0
+          ) {
+            const frameIndex = animationFrame % tile.frames.length;
+            const animatedTileId = tile.frames[frameIndex];
+            const animatedTile = tileset.tiles[animatedTileId];
+            if (animatedTile) {
+              tile = animatedTile;
+            }
+          }
 
           ctx.drawImage(
             tileset.image,
@@ -341,7 +393,7 @@ export function TilemapEditorView() {
         ctx.stroke();
       }
     }
-  }, [tilemap, activeTileset, showGrid]);
+  }, [tilemap, activeTileset, showGrid, animatedTilesEnabled, animationFrame]);
 
   // Render tileset palette
   useEffect(() => {
@@ -1053,7 +1105,7 @@ export function TilemapEditorView() {
                     />
                   ) : (
                     <span
-                      className="flex-1 text-xs truncate"
+                      className="flex-1 text-xs truncate flex items-center gap-1"
                       onDoubleClick={(e) => {
                         e.stopPropagation();
                         setEditingLayerId(layer.id);
@@ -1061,6 +1113,13 @@ export function TilemapEditorView() {
                       }}
                       title="Double-click to rename"
                     >
+                      <span className="text-[10px]">
+                        {layer.type === "collision"
+                          ? "⚠️"
+                          : layer.type === "object"
+                          ? "📦"
+                          : "🖼️"}
+                      </span>
                       {layer.name}
                     </span>
                   )}
@@ -1107,11 +1166,20 @@ export function TilemapEditorView() {
               <button
                 className="ie-button ie-button-sm flex-1"
                 onClick={() =>
-                  addLayer(`Layer ${(tilemap?.layers.length || 0) + 1}`)
+                  addLayer(`Layer ${(tilemap?.layers.length || 0) + 1}`, "tile")
                 }
                 disabled={!tilemap}
+                title="Add Tile Layer"
               >
-                + Add
+                + Tile
+              </button>
+              <button
+                className="ie-button ie-button-sm flex-1"
+                onClick={() => addLayer(`Collision`, "collision")}
+                disabled={!tilemap}
+                title="Add Collision Layer"
+              >
+                + Collision
               </button>
               <button
                 className="ie-button ie-button-sm"
@@ -1290,6 +1358,15 @@ export function TilemapEditorView() {
                 title="Toggle Grid"
               >
                 #
+              </button>
+              <button
+                className={`ie-button ie-button-sm px-1.5 ${
+                  animatedTilesEnabled ? "ie-button-active" : ""
+                }`}
+                onClick={() => setAnimatedTilesEnabled(!animatedTilesEnabled)}
+                title="Toggle Animated Tiles Preview"
+              >
+                🎬
               </button>
               <div className="flex gap-0.5 items-center ml-auto">
                 <button

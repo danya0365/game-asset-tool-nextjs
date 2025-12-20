@@ -512,11 +512,17 @@ src/
 2. ✅ Mini-map preview for tilemap - Overview with viewport indicator
 3. ✅ Animation states (Idle, Walk, Run, Jump, Attack, Hurt, Death, Custom)
 
-**Sprint 12: Next Features** 🔄 Current
+**Sprint 12: Game Engine Integration** ✅ Completed
 
-1. 🔄 Collision layer for tilemap
-2. 🔄 Animated tiles preview
-3. 🔄 Export Cocos Creator animation format
+1. ✅ Collision layer for tilemap - Red overlay with visual indicators
+2. ✅ Animated tiles preview - Toggle animation in toolbar, frame cycling
+3. ✅ Export Cocos Creator animation format - Animation clips with states
+
+**Sprint 13: Next Features** 🔄 Current
+
+1. 🔄 Undo/Redo for tilemap editor
+2. 🔄 Multi-tileset support
+3. 🔄 Tile properties editor
 
 ---
 

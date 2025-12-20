@@ -351,7 +351,7 @@ export default function SpritesheetEditorView() {
     }
   };
 
-  // Export animation data
+  // Export animation data (JSON format)
   const exportAnimations = () => {
     const data = {
       spritesheet: {
@@ -363,6 +363,7 @@ export default function SpritesheetEditorView() {
       animations: animations.map((anim) => ({
         name: anim.name,
         loop: anim.loop,
+        state: anim.state,
         frames: anim.frames.map((f) => ({
           x: f.x,
           y: f.y,
@@ -380,6 +381,78 @@ export default function SpritesheetEditorView() {
     const a = document.createElement("a");
     a.href = url;
     a.download = "spritesheet-animations.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Export Cocos Creator animation format
+  const exportCocosAnimations = () => {
+    if (!spritesheetImage) return;
+
+    // Generate Cocos Creator animation clips
+    const animationClips = animations.map((anim) => {
+      const frameDuration = 1 / fps;
+      const totalDuration = anim.frames.length * frameDuration;
+
+      return {
+        __type__: "cc.AnimationClip",
+        _name: anim.name,
+        _duration: totalDuration,
+        sample: fps,
+        speed: 1,
+        wrapMode: anim.loop ? 2 : 1, // 2 = Loop, 1 = Normal
+        curveData: {
+          comps: {
+            "cc.Sprite": {
+              spriteFrame: anim.frames.map((frame, index) => ({
+                frame: index * frameDuration,
+                value: {
+                  __uuid__: `frame_${anim.name}_${index}`,
+                },
+              })),
+            },
+          },
+        },
+        events: [],
+      };
+    });
+
+    // Generate sprite frames data
+    const spriteFrames = animations.flatMap((anim) =>
+      anim.frames.map((frame, index) => ({
+        name: `${anim.name}_${index}`,
+        rect: { x: frame.x, y: frame.y, w: frame.width, h: frame.height },
+        offset: { x: 0, y: 0 },
+        originalSize: { w: frame.width, h: frame.height },
+        rotated: false,
+      }))
+    );
+
+    const cocosData = {
+      ver: "1.0.0",
+      importer: "game-asset-tool",
+      spritesheet: {
+        width: spritesheetImage.width,
+        height: spritesheetImage.height,
+      },
+      frames: spriteFrames,
+      animations: animationClips,
+      // Animation state mapping for character controllers
+      states: animations.reduce((acc, anim) => {
+        if (anim.state) {
+          acc[anim.state] = anim.name;
+        }
+        return acc;
+      }, {} as Record<string, string>),
+    };
+
+    const blob = new Blob([JSON.stringify(cocosData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "cocos-animations.json";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -447,6 +520,23 @@ export default function SpritesheetEditorView() {
             disabled={!spritesheetImage}
           >
             🔲 Generate Frames
+          </button>
+
+          <div className="ie-separator" />
+
+          <button
+            className="ie-button"
+            onClick={exportAnimations}
+            disabled={animations.length === 0}
+          >
+            📥 Export JSON
+          </button>
+          <button
+            className="ie-button"
+            onClick={exportCocosAnimations}
+            disabled={animations.length === 0}
+          >
+            🎮 Export Cocos
           </button>
 
           <div className="ie-separator" />
