@@ -40,6 +40,7 @@ export function TilemapEditorView() {
     setPan,
     clearError,
     exportToJson,
+    exportTilemap,
   } = useTilemapEditor();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -85,6 +86,18 @@ export function TilemapEditorView() {
 
   // Tileset zoom state
   const [tilesetZoom, setTilesetZoom] = useState(1);
+
+  // Tileset pan state
+  const [tilesetPan, setTilesetPan] = useState({ x: 0, y: 0 });
+  const [isTilesetPanning, setIsTilesetPanning] = useState(false);
+  const [tilesetPanStart, setTilesetPanStart] = useState({ x: 0, y: 0 });
+  const [tilesetPanMode, setTilesetPanMode] = useState(false);
+
+  // Export dialog state
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [exportFormat, setExportFormat] = useState<
+    "json" | "tiled" | "csv" | "phaser" | "godot" | "ldtk" | "cocos"
+  >("cocos");
 
   // Auto-center canvas when tilemap is created
   useEffect(() => {
@@ -304,8 +317,12 @@ export function TilemapEditorView() {
   // Handle canvas mouse events
   const handleCanvasMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      // Middle mouse button or Space+Left click for panning
-      if (e.button === 1 || (e.button === 0 && isSpaceDown)) {
+      // Middle mouse button, Space+Left click, or Pan tool with left click for panning
+      if (
+        e.button === 1 ||
+        (e.button === 0 && isSpaceDown) ||
+        (e.button === 0 && tool === "pan")
+      ) {
         setIsPanning(true);
         setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
         return;
@@ -442,12 +459,14 @@ export function TilemapEditorView() {
   // Handle tileset click to select tile
   const handleTilesetClick = useCallback(
     (e: React.MouseEvent) => {
+      // Don't select tile if in pan mode
+      if (tilesetPanMode) return;
       if (!activeTileset || !tilesetCanvasRef.current) return;
 
       const rect = tilesetCanvasRef.current.getBoundingClientRect();
-      // Account for tileset zoom when calculating tile position
-      const x = (e.clientX - rect.left) / tilesetZoom;
-      const y = (e.clientY - rect.top) / tilesetZoom;
+      // Account for tileset zoom and pan when calculating tile position
+      const x = (e.clientX - rect.left - tilesetPan.x) / tilesetZoom;
+      const y = (e.clientY - rect.top - tilesetPan.y) / tilesetZoom;
 
       const tileX = Math.floor(x / activeTileset.tileWidth);
       const tileY = Math.floor(y / activeTileset.tileHeight);
@@ -457,7 +476,7 @@ export function TilemapEditorView() {
         selectTiles([tileId]);
       }
     },
-    [activeTileset, selectTiles, tilesetZoom]
+    [activeTileset, selectTiles, tilesetZoom, tilesetPan, tilesetPanMode]
   );
 
   // Handle new tilemap creation
@@ -488,21 +507,71 @@ export function TilemapEditorView() {
     setTilesetPreviewUrl(null);
   }, [tilesetFile, tilesetTileWidth, tilesetTileHeight, loadTileset]);
 
-  // Handle export
-  const handleExport = useCallback(() => {
-    const json = exportToJson();
-    if (!json) return;
+  // Handle export with format
+  const handleExportWithFormat = useCallback(() => {
+    const result = exportTilemap(exportFormat);
+    if (!result.data) return;
 
-    const blob = new Blob([json], { type: "application/json" });
+    const blob = new Blob([result.data], { type: result.mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${tilemap?.name || "tilemap"}.json`;
+    a.download = `${tilemap?.name || "tilemap"}${result.extension}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [exportToJson, tilemap?.name]);
+    setShowExportDialog(false);
+  }, [exportTilemap, exportFormat, tilemap?.name]);
+
+  // Handle tileset wheel zoom
+  const handleTilesetWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.25 : 0.25;
+    setTilesetZoom((z) => Math.max(0.25, Math.min(4, z + delta)));
+  }, []);
+
+  // Handle tileset pan start (middle mouse, right click, or left click in pan mode)
+  const handleTilesetMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (
+        e.button === 1 ||
+        e.button === 2 ||
+        (e.button === 0 && tilesetPanMode)
+      ) {
+        e.preventDefault();
+        setIsTilesetPanning(true);
+        setTilesetPanStart({
+          x: e.clientX - tilesetPan.x,
+          y: e.clientY - tilesetPan.y,
+        });
+      }
+    },
+    [tilesetPan, tilesetPanMode]
+  );
+
+  // Handle tileset pan move
+  const handleTilesetMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (isTilesetPanning) {
+        setTilesetPan({
+          x: e.clientX - tilesetPanStart.x,
+          y: e.clientY - tilesetPanStart.y,
+        });
+      }
+    },
+    [isTilesetPanning, tilesetPanStart]
+  );
+
+  // Handle tileset pan end
+  const handleTilesetMouseUp = useCallback(() => {
+    setIsTilesetPanning(false);
+  }, []);
+
+  // Handle tileset context menu (prevent default)
+  const handleTilesetContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+  }, []);
 
   return (
     <MainLayout title="Tilemap Editor - Game Asset Tool">
@@ -531,17 +600,29 @@ export function TilemapEditorView() {
           {/* Tileset Palette */}
           <div className="ie-groupbox flex-1 flex flex-col min-h-0">
             <span className="ie-groupbox-title">Tileset</span>
-            <div className="ie-panel-inset flex-1 overflow-auto ie-scrollbar -mt-2 bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2210%22%20height%3D%2210%22%3E%3Crect%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%23444%22%2F%3E%3Crect%20x%3D%225%22%20y%3D%225%22%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%23444%22%2F%3E%3C%2Fsvg%3E')]">
+            <div
+              className="ie-panel-inset flex-1 overflow-hidden ie-scrollbar -mt-2 bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2210%22%20height%3D%2210%22%3E%3Crect%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%23444%22%2F%3E%3Crect%20x%3D%225%22%20y%3D%225%22%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%23444%22%2F%3E%3C%2Fsvg%3E')]"
+              onWheel={handleTilesetWheel}
+              onMouseDown={handleTilesetMouseDown}
+              onMouseMove={handleTilesetMouseMove}
+              onMouseUp={handleTilesetMouseUp}
+              onMouseLeave={handleTilesetMouseUp}
+              onContextMenu={handleTilesetContextMenu}
+            >
               {activeTileset ? (
                 <div
                   style={{
-                    transform: `scale(${tilesetZoom})`,
+                    transform: `translate(${tilesetPan.x}px, ${tilesetPan.y}px) scale(${tilesetZoom})`,
                     transformOrigin: "0 0",
+                    cursor: isTilesetPanning
+                      ? "grabbing"
+                      : tilesetPanMode
+                      ? "grab"
+                      : "pointer",
                   }}
                 >
                   <canvas
                     ref={tilesetCanvasRef}
-                    className="cursor-pointer"
                     style={{ imageRendering: "pixelated" }}
                     onClick={handleTilesetClick}
                   />
@@ -555,12 +636,24 @@ export function TilemapEditorView() {
               )}
             </div>
             {/* Tileset Controls */}
-            <div className="flex gap-1 mt-2">
+            <div className="flex gap-1 mt-2 flex-wrap">
               <button
                 className="ie-button ie-button-sm flex-1"
                 onClick={() => fileInputRef.current?.click()}
               >
                 📁 Load
+              </button>
+              <button
+                className={`ie-button ie-button-sm px-1.5 ${
+                  tilesetPanMode ? "ie-button-active" : ""
+                }`}
+                onClick={() => setTilesetPanMode((m) => !m)}
+                disabled={!activeTileset}
+                title={
+                  tilesetPanMode ? "Select Mode (Click)" : "Pan Mode (Hand)"
+                }
+              >
+                {tilesetPanMode ? "✋" : "👆"}
               </button>
               <button
                 className="ie-button ie-button-sm px-1"
@@ -580,6 +673,17 @@ export function TilemapEditorView() {
                 title="Zoom In Tileset"
               >
                 +
+              </button>
+              <button
+                className="ie-button ie-button-sm px-1"
+                onClick={() => {
+                  setTilesetZoom(1);
+                  setTilesetPan({ x: 0, y: 0 });
+                }}
+                disabled={!activeTileset}
+                title="Reset View"
+              >
+                ↺
               </button>
             </div>
             <input
@@ -760,6 +864,15 @@ export function TilemapEditorView() {
                 >
                   💉
                 </button>
+                <button
+                  className={`ie-button ie-button-sm px-1.5 ${
+                    tool === "pan" ? "ie-button-active" : ""
+                  }`}
+                  onClick={() => setTool("pan")}
+                  title="Pan (Hand Tool)"
+                >
+                  ✋
+                </button>
               </div>
               <div className="w-px h-5 bg-gray-400 mx-1" />
               <button
@@ -818,7 +931,7 @@ export function TilemapEditorView() {
               style={{
                 cursor: isPanning
                   ? "grabbing"
-                  : isSpaceDown
+                  : isSpaceDown || tool === "pan"
                   ? "grab"
                   : tool === "pencil" || tool === "eraser"
                   ? "crosshair"
@@ -873,10 +986,10 @@ export function TilemapEditorView() {
               </button>
               <button
                 className="ie-button ie-button-sm w-full"
-                onClick={handleExport}
+                onClick={() => setShowExportDialog(true)}
                 disabled={!tilemap}
               >
-                💾 Export JSON
+                💾 Export
               </button>
             </div>
           </div>
@@ -1108,6 +1221,115 @@ export function TilemapEditorView() {
                     disabled={isLoading}
                   >
                     {isLoading ? "Loading..." : "Import"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Portal>
+      )}
+
+      {/* Export Dialog */}
+      {showExportDialog && (
+        <Portal>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="ie-window w-96 h-fit">
+              <div className="ie-titlebar">
+                <span className="ie-titlebar-text">Export Tilemap</span>
+                <button
+                  className="ie-titlebar-btn ie-titlebar-close"
+                  onClick={() => setShowExportDialog(false)}
+                >
+                  <span>×</span>
+                </button>
+              </div>
+              <div className="ie-window-body p-3 space-y-3">
+                <div>
+                  <label className="text-xs block mb-2 font-bold">
+                    Export Format
+                  </label>
+                  <div className="space-y-1">
+                    {[
+                      {
+                        value: "cocos",
+                        label: "⭐ Cocos Creator (.tmj)",
+                        desc: "Optimized for Cocos Creator 3.x",
+                      },
+                      {
+                        value: "tiled",
+                        label: "Tiled JSON (.tmj)",
+                        desc: "Compatible with Tiled, Phaser, Godot, Unity",
+                      },
+                      {
+                        value: "json",
+                        label: "Custom JSON (.json)",
+                        desc: "App-specific format",
+                      },
+                      {
+                        value: "csv",
+                        label: "CSV (.csv)",
+                        desc: "Simple comma-separated values",
+                      },
+                      {
+                        value: "phaser",
+                        label: "Phaser 3 (.json)",
+                        desc: "Optimized for Phaser.js",
+                      },
+                      {
+                        value: "godot",
+                        label: "Godot TileMap (.tres)",
+                        desc: "Godot 4 resource format",
+                      },
+                      {
+                        value: "ldtk",
+                        label: "LDtk (.ldtk)",
+                        desc: "Level Designer Toolkit format",
+                      },
+                    ].map((format) => (
+                      <label
+                        key={format.value}
+                        className={`flex items-start gap-2 p-2 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                          exportFormat === format.value
+                            ? "bg-blue-100 dark:bg-blue-900"
+                            : ""
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="exportFormat"
+                          value={format.value}
+                          checked={exportFormat === format.value}
+                          onChange={(e) =>
+                            setExportFormat(
+                              e.target.value as typeof exportFormat
+                            )
+                          }
+                          className="mt-0.5"
+                        />
+                        <div>
+                          <div className="text-sm font-medium">
+                            {format.label}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {format.desc}
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-2 border-t">
+                  <button
+                    className="ie-button"
+                    onClick={() => setShowExportDialog(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="ie-button"
+                    onClick={handleExportWithFormat}
+                  >
+                    💾 Export
                   </button>
                 </div>
               </div>

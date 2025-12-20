@@ -59,7 +59,13 @@ export interface TilemapEditorState {
   error: string | null;
 }
 
-export type TilemapTool = "pencil" | "eraser" | "bucket" | "select" | "picker";
+export type TilemapTool =
+  | "pencil"
+  | "eraser"
+  | "bucket"
+  | "select"
+  | "picker"
+  | "pan";
 
 export const TILE_SIZES = [8, 16, 32, 64] as const;
 
