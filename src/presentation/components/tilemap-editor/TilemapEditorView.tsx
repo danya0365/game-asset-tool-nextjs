@@ -134,6 +134,13 @@ export function TilemapEditorView() {
   const [freeformSelectedTile, setFreeformSelectedTile] = useState<
     number | null
   >(null);
+  const [freeformAreaSelection, setFreeformAreaSelection] = useState<{
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
+  } | null>(null);
+  const [isFreeformSelecting, setIsFreeformSelecting] = useState(false);
   const tileGroupCanvasRef = useRef<HTMLCanvasElement>(null);
   const [tileGroupSelection, setTileGroupSelection] = useState<{
     startX: number;
@@ -889,14 +896,6 @@ export function TilemapEditorView() {
                 title="Reset View"
               >
                 ↺
-              </button>
-              <button
-                className="ie-button ie-button-sm px-1.5"
-                onClick={() => setShowTileGroupDialog(true)}
-                disabled={!brushPattern || brushPattern.tiles.length === 0}
-                title="Create Tile Group from Selection"
-              >
-                🏠
               </button>
             </div>
             <input
@@ -1941,16 +1940,29 @@ export function TilemapEditorView() {
                       </button>
                     </div>
 
-                    {/* Tile Selector */}
+                    {/* Tile Selector - supports both click and drag */}
                     <div className="ie-groupbox">
                       <span className="ie-groupbox-title">
-                        Select Tile{" "}
-                        {freeformSelectedTile !== null &&
-                          `(Selected: #${freeformSelectedTile})`}
+                        Select Tiles (คลิก = 1 tile, ลาก = หลาย tiles)
+                        {freeformAreaSelection && (
+                          <span className="ml-2 text-blue-600">
+                            [
+                            {Math.abs(
+                              freeformAreaSelection.endX -
+                                freeformAreaSelection.startX
+                            ) + 1}
+                            x
+                            {Math.abs(
+                              freeformAreaSelection.endY -
+                                freeformAreaSelection.startY
+                            ) + 1}
+                            ]
+                          </span>
+                        )}
                       </span>
                       <div
-                        className="ie-panel-inset overflow-auto max-h-32 relative"
-                        onClick={(e) => {
+                        className="ie-panel-inset overflow-auto max-h-40 relative"
+                        onMouseDown={(e) => {
                           const rect =
                             tileGroupCanvasRef.current?.getBoundingClientRect();
                           if (!rect) return;
@@ -1960,9 +1972,34 @@ export function TilemapEditorView() {
                           const y = Math.floor(
                             (e.clientY - rect.top) / activeTileset.tileHeight
                           );
-                          const tileId = y * activeTileset.columns + x;
-                          setFreeformSelectedTile(tileId);
+                          setIsFreeformSelecting(true);
+                          setFreeformAreaSelection({
+                            startX: x,
+                            startY: y,
+                            endX: x,
+                            endY: y,
+                          });
+                          setFreeformSelectedTile(
+                            y * activeTileset.columns + x
+                          );
                         }}
+                        onMouseMove={(e) => {
+                          if (!isFreeformSelecting) return;
+                          const rect =
+                            tileGroupCanvasRef.current?.getBoundingClientRect();
+                          if (!rect) return;
+                          const x = Math.floor(
+                            (e.clientX - rect.left) / activeTileset.tileWidth
+                          );
+                          const y = Math.floor(
+                            (e.clientY - rect.top) / activeTileset.tileHeight
+                          );
+                          setFreeformAreaSelection((prev) =>
+                            prev ? { ...prev, endX: x, endY: y } : null
+                          );
+                        }}
+                        onMouseUp={() => setIsFreeformSelecting(false)}
+                        onMouseLeave={() => setIsFreeformSelecting(false)}
                       >
                         <canvas
                           ref={tileGroupCanvasRef}
@@ -1972,27 +2009,96 @@ export function TilemapEditorView() {
                           height={activeTileset.rows * activeTileset.tileHeight}
                           style={{
                             imageRendering: "pixelated",
-                            cursor: "pointer",
+                            cursor: "crosshair",
                           }}
                         />
-                        {/* Selected tile overlay */}
-                        {freeformSelectedTile !== null && (
+                        {/* Area selection overlay */}
+                        {freeformAreaSelection && (
                           <div
                             className="absolute border-2 border-blue-500 bg-blue-500/30 pointer-events-none"
                             style={{
                               left:
-                                (freeformSelectedTile % activeTileset.columns) *
-                                activeTileset.tileWidth,
+                                Math.min(
+                                  freeformAreaSelection.startX,
+                                  freeformAreaSelection.endX
+                                ) * activeTileset.tileWidth,
                               top:
-                                Math.floor(
-                                  freeformSelectedTile / activeTileset.columns
+                                Math.min(
+                                  freeformAreaSelection.startY,
+                                  freeformAreaSelection.endY
                                 ) * activeTileset.tileHeight,
-                              width: activeTileset.tileWidth,
-                              height: activeTileset.tileHeight,
+                              width:
+                                (Math.abs(
+                                  freeformAreaSelection.endX -
+                                    freeformAreaSelection.startX
+                                ) +
+                                  1) *
+                                activeTileset.tileWidth,
+                              height:
+                                (Math.abs(
+                                  freeformAreaSelection.endY -
+                                    freeformAreaSelection.startY
+                                ) +
+                                  1) *
+                                activeTileset.tileHeight,
                             }}
                           />
                         )}
                       </div>
+                      {/* Auto Draw Button */}
+                      {freeformAreaSelection && (
+                        <button
+                          className="ie-button w-full mt-2 text-sm font-bold bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600"
+                          onClick={() => {
+                            if (!freeformAreaSelection) return;
+                            const minX = Math.min(
+                              freeformAreaSelection.startX,
+                              freeformAreaSelection.endX
+                            );
+                            const maxX = Math.max(
+                              freeformAreaSelection.startX,
+                              freeformAreaSelection.endX
+                            );
+                            const minY = Math.min(
+                              freeformAreaSelection.startY,
+                              freeformAreaSelection.endY
+                            );
+                            const maxY = Math.max(
+                              freeformAreaSelection.startY,
+                              freeformAreaSelection.endY
+                            );
+                            const width = maxX - minX + 1;
+                            const height = maxY - minY + 1;
+
+                            // Auto-resize canvas and fill with selected tiles
+                            setFreeformSize({ width, height });
+                            const newTiles: (number | null)[][] = [];
+                            for (let y = 0; y < height; y++) {
+                              const row: (number | null)[] = [];
+                              for (let x = 0; x < width; x++) {
+                                const tileId =
+                                  (minY + y) * activeTileset.columns +
+                                  (minX + x);
+                                row.push(tileId);
+                              }
+                              newTiles.push(row);
+                            }
+                            setFreeformTiles(newTiles);
+                          }}
+                        >
+                          ✨ Auto Draw (
+                          {Math.abs(
+                            freeformAreaSelection.endX -
+                              freeformAreaSelection.startX
+                          ) + 1}
+                          x
+                          {Math.abs(
+                            freeformAreaSelection.endY -
+                              freeformAreaSelection.startY
+                          ) + 1}{" "}
+                          tiles)
+                        </button>
+                      )}
                     </div>
 
                     {/* Freeform Canvas */}
