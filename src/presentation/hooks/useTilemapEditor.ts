@@ -443,7 +443,37 @@ export function useTilemapEditor() {
 
   // ===== TILE GROUP FUNCTIONS =====
 
-  // Create a new tile group from current brush pattern
+  // Create a simple tile group from current brush pattern (for stamps like carpet, furniture, etc.)
+  const createSimpleTileGroup = useCallback((name: string) => {
+    setState((prev) => {
+      if (!prev.brushPattern || prev.brushPattern.tiles.length === 0) {
+        return prev;
+      }
+
+      const newGroup: TileGroup = {
+        id: generateId(),
+        name,
+        parts: [
+          {
+            name: "main",
+            tiles: [...prev.brushPattern.tiles],
+            width: prev.brushPattern.width,
+            height: prev.brushPattern.height,
+            repeatable: false,
+          },
+        ],
+        previewTileId: prev.brushPattern.tiles[0]?.tileId,
+      };
+
+      return {
+        ...prev,
+        tileGroups: [...prev.tileGroups, newGroup],
+        activeTileGroup: newGroup,
+      };
+    });
+  }, []);
+
+  // Create a new tile group from current brush pattern (for building variations)
   const createTileGroup = useCallback(
     (name: string, partName: string, repeatable: boolean = false) => {
       setState((prev) => {
@@ -518,9 +548,9 @@ export function useTilemapEditor() {
     setState((prev) => ({ ...prev, activeTileGroup: group }));
   }, []);
 
-  // Paint tile group with variations (repeat middle parts)
+  // Paint tile group (simple stamp or building variations)
   const paintTileGroup = useCallback(
-    (x: number, y: number, repeatCount: number = 1) => {
+    (x: number, y: number, repeatCount: number = 0) => {
       setState((prev) => {
         if (!prev.tilemap || !prev.activeLayer || !prev.activeTileGroup) {
           return prev;
@@ -537,7 +567,36 @@ export function useTilemapEditor() {
         const newData = layer.data.map((row) => [...row]);
         const group = prev.activeTileGroup;
 
-        // Find parts by type
+        // Check if this is a simple group (has "main" part)
+        const mainPart = group.parts.find((p) => p.name === "main");
+        if (mainPart) {
+          // Simple stamp - just paint all tiles at their offsets
+          for (const tile of mainPart.tiles) {
+            const tileX = x + tile.offsetX;
+            const tileY = y + tile.offsetY;
+            if (
+              tileX >= 0 &&
+              tileX < prev.tilemap.width &&
+              tileY >= 0 &&
+              tileY < prev.tilemap.height
+            ) {
+              newData[tileY][tileX] = tile.tileId;
+            }
+          }
+
+          const newLayers = [...prev.tilemap.layers];
+          newLayers[layerIndex] = { ...layer, data: newData };
+
+          return {
+            ...prev,
+            tilemap: {
+              ...prev.tilemap,
+              layers: newLayers,
+            },
+          };
+        }
+
+        // Building variations mode (top/middle/bottom parts)
         const topPart = group.parts.find((p) => p.name === "top");
         const middlePart = group.parts.find(
           (p) => p.name === "middle" && p.repeatable
@@ -1130,6 +1189,7 @@ export function useTilemapEditor() {
     exportTilemap,
     resizeTilemap,
     // Tile Group functions
+    createSimpleTileGroup,
     createTileGroup,
     addTileGroupPart,
     deleteTileGroup,

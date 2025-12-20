@@ -46,6 +46,7 @@ export function TilemapEditorView() {
     clearError,
     exportToJson,
     exportTilemap,
+    createSimpleTileGroup,
     createTileGroup,
     addTileGroupPart,
     deleteTileGroup,
@@ -952,6 +953,84 @@ export function TilemapEditorView() {
                 🗑️
               </button>
             </div>
+          </div>
+
+          {/* Tile Groups Panel */}
+          <div className="ie-groupbox mt-1">
+            <span className="ie-groupbox-title">Tile Groups</span>
+            <div className="ie-panel-inset max-h-32 overflow-auto ie-scrollbar -mt-2">
+              {tileGroups.length === 0 ? (
+                <div className="text-xs text-gray-500 p-2 text-center">
+                  No groups saved
+                  <br />
+                  Select tiles then click 🏠
+                </div>
+              ) : (
+                tileGroups.map((group) => (
+                  <div
+                    key={group.id}
+                    className={`flex items-center justify-between p-1.5 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 ${
+                      activeTileGroup?.id === group.id
+                        ? "bg-blue-100 dark:bg-blue-900"
+                        : ""
+                    }`}
+                    onClick={() => {
+                      if (activeTileGroup?.id === group.id) {
+                        setActiveTileGroup(null);
+                      } else {
+                        setActiveTileGroup(group);
+                      }
+                    }}
+                  >
+                    <span className="text-xs truncate flex-1">
+                      📦 {group.name}
+                      <span className="text-gray-500 ml-1">
+                        ({group.parts[0]?.width}x{group.parts[0]?.height})
+                      </span>
+                    </span>
+                    <button
+                      className="text-xs text-red-500 opacity-50 hover:opacity-100 ml-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteTileGroup(group.id);
+                      }}
+                      title="Delete Group"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="flex gap-1 mt-1">
+              <input
+                type="text"
+                className="ie-input flex-1 text-xs"
+                placeholder="Group name..."
+                value={tileGroupName}
+                onChange={(e) => setTileGroupName(e.target.value)}
+              />
+              <button
+                className="ie-button ie-button-sm"
+                onClick={() => {
+                  if (tileGroupName.trim() && brushPattern) {
+                    createSimpleTileGroup(tileGroupName.trim());
+                    setTileGroupName("");
+                  }
+                }}
+                disabled={!brushPattern || brushPattern.tiles.length === 0}
+                title="Save Selection as Tile Group"
+              >
+                💾
+              </button>
+            </div>
+            {activeTileGroup && (
+              <div className="text-xs text-green-600 dark:text-green-400 mt-1 p-1 bg-green-100 dark:bg-green-900/30 rounded">
+                ✓ Using: <strong>{activeTileGroup.name}</strong>
+                <br />
+                <span className="text-gray-500">Click on tilemap to stamp</span>
+              </div>
+            )}
           </div>
         </div>
 
