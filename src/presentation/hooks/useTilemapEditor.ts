@@ -1,6 +1,9 @@
 "use client";
 
 import type {
+  BrushTile,
+  TileGroup,
+  TileGroupPart,
   Tilemap,
   TilemapEditorState,
   TilemapLayer,
@@ -24,6 +27,9 @@ export function useTilemapEditor() {
     activeTileset: null,
     activeLayer: null,
     selectedTiles: [],
+    brushPattern: null,
+    tileGroups: [],
+    activeTileGroup: null,
     tool: "pencil",
     showGrid: true,
     zoom: 1,
@@ -212,6 +218,89 @@ export function useTilemapEditor() {
     setState((prev) => ({ ...prev, selectedTiles: tileIds }));
   }, []);
 
+  // Select tiles area for multi-tile brush (from tileset grid coordinates)
+  const selectTilesArea = useCallback(
+    (startX: number, startY: number, endX: number, endY: number) => {
+      setState((prev) => {
+        if (!prev.activeTileset) return prev;
+
+        // Normalize coordinates (ensure start < end)
+        const minX = Math.min(startX, endX);
+        const maxX = Math.max(startX, endX);
+        const minY = Math.min(startY, endY);
+        const maxY = Math.max(startY, endY);
+
+        const width = maxX - minX + 1;
+        const height = maxY - minY + 1;
+        const tiles: BrushTile[] = [];
+        const selectedTileIds: number[] = [];
+
+        for (let dy = 0; dy < height; dy++) {
+          for (let dx = 0; dx < width; dx++) {
+            const tileX = minX + dx;
+            const tileY = minY + dy;
+            const tileId = tileY * prev.activeTileset.columns + tileX;
+
+            if (tileId >= 0 && tileId < prev.activeTileset.tiles.length) {
+              tiles.push({ tileId, offsetX: dx, offsetY: dy });
+              selectedTileIds.push(tileId);
+            }
+          }
+        }
+
+        return {
+          ...prev,
+          selectedTiles: selectedTileIds,
+          brushPattern: { tiles, width, height },
+        };
+      });
+    },
+    []
+  );
+
+  // Paint with brush pattern at position
+  const paintBrush = useCallback((x: number, y: number) => {
+    setState((prev) => {
+      if (!prev.tilemap || !prev.activeLayer || !prev.brushPattern) return prev;
+
+      const layerIndex = prev.tilemap.layers.findIndex(
+        (l) => l.id === prev.activeLayer
+      );
+      if (layerIndex === -1) return prev;
+
+      const layer = prev.tilemap.layers[layerIndex];
+      if (layer.locked) return prev;
+
+      // Create new data with brush pattern applied
+      const newData = layer.data.map((row) => [...row]);
+
+      for (const brushTile of prev.brushPattern.tiles) {
+        const tileX = x + brushTile.offsetX;
+        const tileY = y + brushTile.offsetY;
+
+        if (
+          tileX >= 0 &&
+          tileX < prev.tilemap.width &&
+          tileY >= 0 &&
+          tileY < prev.tilemap.height
+        ) {
+          newData[tileY][tileX] = brushTile.tileId;
+        }
+      }
+
+      const newLayers = [...prev.tilemap.layers];
+      newLayers[layerIndex] = { ...layer, data: newData };
+
+      return {
+        ...prev,
+        tilemap: {
+          ...prev.tilemap,
+          layers: newLayers,
+        },
+      };
+    });
+  }, []);
+
   // Paint tile at position
   const paintTile = useCallback((x: number, y: number, tileId: number) => {
     setState((prev) => {
@@ -351,6 +440,178 @@ export function useTilemapEditor() {
   const setTool = useCallback((tool: TilemapTool) => {
     setState((prev) => ({ ...prev, tool }));
   }, []);
+
+  // ===== TILE GROUP FUNCTIONS =====
+
+  // Create a new tile group from current brush pattern
+  const createTileGroup = useCallback(
+    (name: string, partName: string, repeatable: boolean = false) => {
+      setState((prev) => {
+        if (!prev.brushPattern || prev.brushPattern.tiles.length === 0) {
+          return prev;
+        }
+
+        const newPart: TileGroupPart = {
+          name: partName,
+          tiles: [...prev.brushPattern.tiles],
+          width: prev.brushPattern.width,
+          height: prev.brushPattern.height,
+          repeatable,
+        };
+
+        const newGroup: TileGroup = {
+          id: generateId(),
+          name,
+          parts: [newPart],
+          previewTileId: prev.brushPattern.tiles[0]?.tileId,
+        };
+
+        return {
+          ...prev,
+          tileGroups: [...prev.tileGroups, newGroup],
+          activeTileGroup: newGroup,
+        };
+      });
+    },
+    []
+  );
+
+  // Add a part to an existing tile group
+  const addTileGroupPart = useCallback(
+    (groupId: string, partName: string, repeatable: boolean = false) => {
+      setState((prev) => {
+        if (!prev.brushPattern || prev.brushPattern.tiles.length === 0) {
+          return prev;
+        }
+
+        const newPart: TileGroupPart = {
+          name: partName,
+          tiles: [...prev.brushPattern.tiles],
+          width: prev.brushPattern.width,
+          height: prev.brushPattern.height,
+          repeatable,
+        };
+
+        return {
+          ...prev,
+          tileGroups: prev.tileGroups.map((g) =>
+            g.id === groupId ? { ...g, parts: [...g.parts, newPart] } : g
+          ),
+        };
+      });
+    },
+    []
+  );
+
+  // Delete a tile group
+  const deleteTileGroup = useCallback((groupId: string) => {
+    setState((prev) => ({
+      ...prev,
+      tileGroups: prev.tileGroups.filter((g) => g.id !== groupId),
+      activeTileGroup:
+        prev.activeTileGroup?.id === groupId ? null : prev.activeTileGroup,
+    }));
+  }, []);
+
+  // Set active tile group
+  const setActiveTileGroup = useCallback((group: TileGroup | null) => {
+    setState((prev) => ({ ...prev, activeTileGroup: group }));
+  }, []);
+
+  // Paint tile group with variations (repeat middle parts)
+  const paintTileGroup = useCallback(
+    (x: number, y: number, repeatCount: number = 1) => {
+      setState((prev) => {
+        if (!prev.tilemap || !prev.activeLayer || !prev.activeTileGroup) {
+          return prev;
+        }
+
+        const layerIndex = prev.tilemap.layers.findIndex(
+          (l) => l.id === prev.activeLayer
+        );
+        if (layerIndex === -1) return prev;
+
+        const layer = prev.tilemap.layers[layerIndex];
+        if (layer.locked) return prev;
+
+        const newData = layer.data.map((row) => [...row]);
+        const group = prev.activeTileGroup;
+
+        // Find parts by type
+        const topPart = group.parts.find((p) => p.name === "top");
+        const middlePart = group.parts.find(
+          (p) => p.name === "middle" && p.repeatable
+        );
+        const bottomPart = group.parts.find((p) => p.name === "bottom");
+
+        let currentY = y;
+
+        // Paint top part first (at the top visually, lowest Y)
+        if (topPart) {
+          for (const tile of topPart.tiles) {
+            const tileX = x + tile.offsetX;
+            const tileY = currentY + tile.offsetY;
+            if (
+              tileX >= 0 &&
+              tileX < prev.tilemap.width &&
+              tileY >= 0 &&
+              tileY < prev.tilemap.height
+            ) {
+              newData[tileY][tileX] = tile.tileId;
+            }
+          }
+          currentY += topPart.height;
+        }
+
+        // Paint middle parts (repeated)
+        if (middlePart) {
+          for (let i = 0; i < repeatCount; i++) {
+            for (const tile of middlePart.tiles) {
+              const tileX = x + tile.offsetX;
+              const tileY = currentY + tile.offsetY;
+              if (
+                tileX >= 0 &&
+                tileX < prev.tilemap.width &&
+                tileY >= 0 &&
+                tileY < prev.tilemap.height
+              ) {
+                newData[tileY][tileX] = tile.tileId;
+              }
+            }
+            currentY += middlePart.height;
+          }
+        }
+
+        // Paint bottom part last
+        if (bottomPart) {
+          for (const tile of bottomPart.tiles) {
+            const tileX = x + tile.offsetX;
+            const tileY = currentY + tile.offsetY;
+            if (
+              tileX >= 0 &&
+              tileX < prev.tilemap.width &&
+              tileY >= 0 &&
+              tileY < prev.tilemap.height
+            ) {
+              newData[tileY][tileX] = tile.tileId;
+            }
+          }
+        }
+
+        const newLayers = [...prev.tilemap.layers];
+        newLayers[layerIndex] = { ...layer, data: newData };
+
+        return {
+          ...prev,
+          tilemap: {
+            ...prev.tilemap,
+            layers: newLayers,
+          },
+        };
+      });
+    },
+    []
+  );
 
   // Toggle grid
   const toggleGrid = useCallback(() => {
@@ -848,7 +1109,9 @@ export function useTilemapEditor() {
     setActiveLayer,
     setActiveTileset,
     selectTiles,
+    selectTilesArea,
     paintTile,
+    paintBrush,
     eraseTile,
     bucketFill,
     pickTile,
@@ -866,6 +1129,12 @@ export function useTilemapEditor() {
     exportToJson,
     exportTilemap,
     resizeTilemap,
+    // Tile Group functions
+    createTileGroup,
+    addTileGroupPart,
+    deleteTileGroup,
+    setActiveTileGroup,
+    paintTileGroup,
   };
 }
 

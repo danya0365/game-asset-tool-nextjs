@@ -46,11 +46,43 @@ export interface Tilemap {
   backgroundColor?: string;
 }
 
+// Brush pattern for multi-tile selection
+export interface BrushTile {
+  tileId: number;
+  offsetX: number; // Relative X position from brush origin
+  offsetY: number; // Relative Y position from brush origin
+}
+
+export interface BrushPattern {
+  tiles: BrushTile[];
+  width: number; // Width in tiles
+  height: number; // Height in tiles
+}
+
+// Tile Group for building variations (houses, trees, etc.)
+export interface TileGroupPart {
+  name: string; // "top", "middle", "bottom"
+  tiles: BrushTile[];
+  width: number;
+  height: number;
+  repeatable: boolean; // Can this part be repeated (like middle floors)
+}
+
+export interface TileGroup {
+  id: string;
+  name: string;
+  parts: TileGroupPart[];
+  previewTileId?: number; // First tile for preview
+}
+
 export interface TilemapEditorState {
   tilemap: Tilemap | null;
   activeTileset: Tileset | null;
   activeLayer: string | null;
   selectedTiles: number[]; // Array of selected tile IDs for multi-tile brush
+  brushPattern: BrushPattern | null; // Multi-tile brush pattern
+  tileGroups: TileGroup[]; // Saved tile groups for building variations
+  activeTileGroup: TileGroup | null; // Currently selected tile group
   tool: TilemapTool;
   showGrid: boolean;
   zoom: number;

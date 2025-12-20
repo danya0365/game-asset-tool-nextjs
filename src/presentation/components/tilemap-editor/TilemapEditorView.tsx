@@ -18,6 +18,9 @@ export function TilemapEditorView() {
     pan,
     isLoading,
     error,
+    brushPattern,
+    tileGroups,
+    activeTileGroup,
     createTilemap,
     loadTileset,
     addLayer,
@@ -25,7 +28,9 @@ export function TilemapEditorView() {
     toggleLayerVisibility,
     setActiveLayer,
     selectTiles,
+    selectTilesArea,
     paintTile,
+    paintBrush,
     eraseTile,
     bucketFill,
     pickTile,
@@ -41,6 +46,11 @@ export function TilemapEditorView() {
     clearError,
     exportToJson,
     exportTilemap,
+    createTileGroup,
+    addTileGroupPart,
+    deleteTileGroup,
+    setActiveTileGroup,
+    paintTileGroup,
   } = useTilemapEditor();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -93,11 +103,31 @@ export function TilemapEditorView() {
   const [tilesetPanStart, setTilesetPanStart] = useState({ x: 0, y: 0 });
   const [tilesetPanMode, setTilesetPanMode] = useState(false);
 
+  // Tileset drag selection state (for multi-tile brush)
+  const [isTilesetDragging, setIsTilesetDragging] = useState(false);
+  const [tilesetDragStart, setTilesetDragStart] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [tilesetDragEnd, setTilesetDragEnd] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+
   // Export dialog state
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportFormat, setExportFormat] = useState<
     "json" | "tiled" | "csv" | "phaser" | "godot" | "ldtk" | "cocos"
   >("cocos");
+
+  // Tile Group dialog state
+  const [showTileGroupDialog, setShowTileGroupDialog] = useState(false);
+  const [tileGroupName, setTileGroupName] = useState("House");
+  const [tileGroupPartName, setTileGroupPartName] = useState<
+    "top" | "middle" | "bottom"
+  >("top");
+  const [tileGroupPartRepeatable, setTileGroupPartRepeatable] = useState(false);
+  const [tileGroupRepeatCount, setTileGroupRepeatCount] = useState(1);
 
   // Auto-center canvas when tilemap is created
   useEffect(() => {
@@ -348,8 +378,15 @@ export function TilemapEditorView() {
       setIsDrawing(true);
       setLastDrawPos(pos);
 
-      if (tool === "pencil" && selectedTiles.length > 0) {
-        paintTile(pos.x, pos.y, selectedTiles[0]);
+      if (tool === "pencil") {
+        // Use tile group if active, otherwise brush pattern or single tile
+        if (activeTileGroup) {
+          paintTileGroup(pos.x, pos.y, tileGroupRepeatCount);
+        } else if (brushPattern && brushPattern.tiles.length > 1) {
+          paintBrush(pos.x, pos.y);
+        } else if (selectedTiles.length > 0) {
+          paintTile(pos.x, pos.y, selectedTiles[0]);
+        }
       } else if (tool === "eraser") {
         eraseTile(pos.x, pos.y);
       } else if (tool === "bucket" && selectedTiles.length > 0) {
@@ -361,10 +398,15 @@ export function TilemapEditorView() {
     [
       tool,
       selectedTiles,
+      brushPattern,
+      activeTileGroup,
+      tileGroupRepeatCount,
       pan,
       isSpaceDown,
       getTilePos,
       paintTile,
+      paintBrush,
+      paintTileGroup,
       eraseTile,
       bucketFill,
       pickTile,
@@ -406,7 +448,12 @@ export function TilemapEditorView() {
 
       // Support right-click drag erase
       if (tool === "pencil" && selectedTiles.length > 0) {
-        paintTile(pos.x, pos.y, selectedTiles[0]);
+        // Use brush pattern if available, otherwise single tile
+        if (brushPattern && brushPattern.tiles.length > 1) {
+          paintBrush(pos.x, pos.y);
+        } else {
+          paintTile(pos.x, pos.y, selectedTiles[0]);
+        }
       } else if (tool === "eraser" || e.buttons === 2) {
         eraseTile(pos.x, pos.y);
       }
@@ -417,9 +464,11 @@ export function TilemapEditorView() {
       lastDrawPos,
       tool,
       selectedTiles,
+      brushPattern,
       panStart,
       getTilePos,
       paintTile,
+      paintBrush,
       eraseTile,
       setPan,
       tilemap,
@@ -456,28 +505,86 @@ export function TilemapEditorView() {
     [zoomIn, zoomOut]
   );
 
-  // Handle tileset click to select tile
-  const handleTilesetClick = useCallback(
+  // Get tileset tile position from mouse event
+  const getTilesetTilePos = useCallback(
     (e: React.MouseEvent) => {
-      // Don't select tile if in pan mode
-      if (tilesetPanMode) return;
-      if (!activeTileset || !tilesetCanvasRef.current) return;
-
+      if (!activeTileset || !tilesetCanvasRef.current) return null;
       const rect = tilesetCanvasRef.current.getBoundingClientRect();
-      // Account for tileset zoom and pan when calculating tile position
       const x = (e.clientX - rect.left - tilesetPan.x) / tilesetZoom;
       const y = (e.clientY - rect.top - tilesetPan.y) / tilesetZoom;
-
       const tileX = Math.floor(x / activeTileset.tileWidth);
       const tileY = Math.floor(y / activeTileset.tileHeight);
-      const tileId = tileY * activeTileset.columns + tileX;
+      return { x: tileX, y: tileY };
+    },
+    [activeTileset, tilesetZoom, tilesetPan]
+  );
 
-      if (tileId >= 0 && tileId < activeTileset.tiles.length) {
-        selectTiles([tileId]);
+  // Handle tileset mouse down for drag selection
+  const handleTilesetSelectionStart = useCallback(
+    (e: React.MouseEvent) => {
+      if (tilesetPanMode || e.button !== 0) return;
+      const pos = getTilesetTilePos(e);
+      if (pos) {
+        setIsTilesetDragging(true);
+        setTilesetDragStart(pos);
+        setTilesetDragEnd(pos);
       }
     },
-    [activeTileset, selectTiles, tilesetZoom, tilesetPan, tilesetPanMode]
+    [tilesetPanMode, getTilesetTilePos]
   );
+
+  // Handle tileset mouse move for drag selection
+  const handleTilesetSelectionMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (!isTilesetDragging) return;
+      const pos = getTilesetTilePos(e);
+      if (pos) {
+        setTilesetDragEnd(pos);
+      }
+    },
+    [isTilesetDragging, getTilesetTilePos]
+  );
+
+  // Handle tileset mouse up to complete drag selection
+  const handleTilesetSelectionEnd = useCallback(() => {
+    if (!isTilesetDragging || !tilesetDragStart || !tilesetDragEnd) {
+      setIsTilesetDragging(false);
+      return;
+    }
+    // Select tiles in the area
+    selectTilesArea(
+      tilesetDragStart.x,
+      tilesetDragStart.y,
+      tilesetDragEnd.x,
+      tilesetDragEnd.y
+    );
+    setIsTilesetDragging(false);
+  }, [isTilesetDragging, tilesetDragStart, tilesetDragEnd, selectTilesArea]);
+
+  // Handle tileset click to select single tile (fallback)
+  const handleTilesetClick = useCallback(() => {
+    if (tilesetPanMode) return;
+    if (!activeTileset || !tilesetCanvasRef.current) return;
+    // If drag distance is small, treat as single click
+    if (tilesetDragStart && tilesetDragEnd) {
+      if (
+        tilesetDragStart.x === tilesetDragEnd.x &&
+        tilesetDragStart.y === tilesetDragEnd.y
+      ) {
+        const tileId =
+          tilesetDragStart.y * activeTileset.columns + tilesetDragStart.x;
+        if (tileId >= 0 && tileId < activeTileset.tiles.length) {
+          selectTiles([tileId]);
+        }
+      }
+    }
+  }, [
+    activeTileset,
+    selectTiles,
+    tilesetPanMode,
+    tilesetDragStart,
+    tilesetDragEnd,
+  ]);
 
   // Handle new tilemap creation
   const handleCreateTilemap = useCallback(() => {
@@ -603,10 +710,22 @@ export function TilemapEditorView() {
             <div
               className="ie-panel-inset flex-1 overflow-hidden ie-scrollbar -mt-2 bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2210%22%20height%3D%2210%22%3E%3Crect%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%23444%22%2F%3E%3Crect%20x%3D%225%22%20y%3D%225%22%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%23444%22%2F%3E%3C%2Fsvg%3E')]"
               onWheel={handleTilesetWheel}
-              onMouseDown={handleTilesetMouseDown}
-              onMouseMove={handleTilesetMouseMove}
-              onMouseUp={handleTilesetMouseUp}
-              onMouseLeave={handleTilesetMouseUp}
+              onMouseDown={(e) => {
+                handleTilesetMouseDown(e);
+                handleTilesetSelectionStart(e);
+              }}
+              onMouseMove={(e) => {
+                handleTilesetMouseMove(e);
+                handleTilesetSelectionMove(e);
+              }}
+              onMouseUp={() => {
+                handleTilesetMouseUp();
+                handleTilesetSelectionEnd();
+              }}
+              onMouseLeave={() => {
+                handleTilesetMouseUp();
+                handleTilesetSelectionEnd();
+              }}
               onContextMenu={handleTilesetContextMenu}
             >
               {activeTileset ? (
@@ -684,6 +803,14 @@ export function TilemapEditorView() {
                 title="Reset View"
               >
                 ↺
+              </button>
+              <button
+                className="ie-button ie-button-sm px-1.5"
+                onClick={() => setShowTileGroupDialog(true)}
+                disabled={!brushPattern || brushPattern.tiles.length === 0}
+                title="Create Tile Group from Selection"
+              >
+                🏠
               </button>
             </div>
             <input
@@ -1223,6 +1350,182 @@ export function TilemapEditorView() {
                     {isLoading ? "Loading..." : "Import"}
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </Portal>
+      )}
+
+      {/* Tile Group Dialog */}
+      {showTileGroupDialog && (
+        <Portal>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="ie-window w-80 h-fit">
+              <div className="ie-titlebar">
+                <span className="ie-titlebar-text">🏠 Tile Group Editor</span>
+                <button
+                  className="ie-titlebar-btn ie-titlebar-close"
+                  onClick={() => setShowTileGroupDialog(false)}
+                >
+                  <span>×</span>
+                </button>
+              </div>
+              <div className="ie-window-body p-3 space-y-3">
+                {/* Group Name */}
+                <div className="ie-groupbox">
+                  <span className="ie-groupbox-title">Group Name</span>
+                  <input
+                    type="text"
+                    className="ie-input w-full"
+                    value={tileGroupName}
+                    onChange={(e) => setTileGroupName(e.target.value)}
+                    placeholder="e.g. House, Tree, Tower"
+                  />
+                </div>
+
+                {/* Part Name */}
+                <div className="ie-groupbox">
+                  <span className="ie-groupbox-title">Part Type</span>
+                  <div className="space-y-1">
+                    {(["top", "middle", "bottom"] as const).map((part) => (
+                      <label key={part} className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="partType"
+                          checked={tileGroupPartName === part}
+                          onChange={() => setTileGroupPartName(part)}
+                        />
+                        <span className="text-sm capitalize">
+                          {part === "top" && "🔺 Top (Roof)"}
+                          {part === "middle" && "🔲 Middle (Floors)"}
+                          {part === "bottom" && "🔻 Bottom (Ground)"}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Repeatable */}
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={tileGroupPartRepeatable}
+                    onChange={(e) =>
+                      setTileGroupPartRepeatable(e.target.checked)
+                    }
+                  />
+                  <span className="text-sm">
+                    🔄 Repeatable (for middle floors)
+                  </span>
+                </label>
+
+                {/* Current Selection Info */}
+                <div className="text-xs text-gray-500 p-2 bg-gray-100 dark:bg-gray-800 rounded">
+                  📐 Selected: {brushPattern?.width || 0}x
+                  {brushPattern?.height || 0} tiles
+                </div>
+
+                {/* Saved Groups */}
+                {tileGroups.length > 0 && (
+                  <div className="ie-groupbox">
+                    <span className="ie-groupbox-title">Saved Groups</span>
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                      {tileGroups.map((group) => (
+                        <div
+                          key={group.id}
+                          className={`flex items-center justify-between p-1.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                            activeTileGroup?.id === group.id
+                              ? "bg-blue-100 dark:bg-blue-900"
+                              : ""
+                          }`}
+                          onClick={() => setActiveTileGroup(group)}
+                        >
+                          <span className="text-sm">
+                            🏠 {group.name} ({group.parts.length} parts)
+                          </span>
+                          <button
+                            className="ie-button ie-button-sm px-1 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteTileGroup(group.id);
+                            }}
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-2 border-t">
+                  {activeTileGroup ? (
+                    <button
+                      className="ie-button flex-1"
+                      onClick={() => {
+                        addTileGroupPart(
+                          activeTileGroup.id,
+                          tileGroupPartName,
+                          tileGroupPartRepeatable
+                        );
+                      }}
+                      disabled={
+                        !brushPattern || brushPattern.tiles.length === 0
+                      }
+                    >
+                      ➕ Add Part to &quot;{activeTileGroup.name}&quot;
+                    </button>
+                  ) : (
+                    <button
+                      className="ie-button flex-1"
+                      onClick={() => {
+                        createTileGroup(
+                          tileGroupName,
+                          tileGroupPartName,
+                          tileGroupPartRepeatable
+                        );
+                      }}
+                      disabled={
+                        !brushPattern || brushPattern.tiles.length === 0
+                      }
+                    >
+                      ✨ Create New Group
+                    </button>
+                  )}
+                </div>
+
+                {/* Stamp with Variations */}
+                {activeTileGroup &&
+                  activeTileGroup.parts.some((p) => p.repeatable) && (
+                    <div className="ie-groupbox">
+                      <span className="ie-groupbox-title">
+                        Smart Stamp (Variations)
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs">Floors:</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={10}
+                          value={tileGroupRepeatCount}
+                          onChange={(e) =>
+                            setTileGroupRepeatCount(
+                              Math.max(0, parseInt(e.target.value) || 0)
+                            )
+                          }
+                          className="ie-input w-16 text-center"
+                        />
+                        <span className="text-xs text-gray-500">
+                          = {1 + tileGroupRepeatCount} story building
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Click on tilemap to place building with{" "}
+                        {tileGroupRepeatCount} middle floor(s)
+                      </p>
+                    </div>
+                  )}
               </div>
             </div>
           </div>
