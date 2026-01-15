@@ -1,9 +1,15 @@
 "use client";
 
+import {
+  getRecentProjects,
+  loadProjectFromFile,
+  type RecentProject,
+} from "@/src/infrastructure/storage/projectStorage";
 import { ComingSoonModal } from "@/src/presentation/components/molecules/ComingSoonModal";
 import { MainLayout } from "@/src/presentation/components/templates/MainLayout";
 import { useComingSoonModal } from "@/src/presentation/hooks/useComingSoonModal";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 interface FeatureCard {
   icon: string;
@@ -90,6 +96,37 @@ export function LandingView() {
   const { isOpen, featureName, showComingSoon, hideComingSoon } =
     useComingSoonModal();
 
+  const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load recent projects on mount
+  useEffect(() => {
+    setRecentProjects(getRecentProjects());
+  }, []);
+
+  // Handle project file import
+  const handleOpenProject = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const project = await loadProjectFromFile(file);
+    if (project) {
+      // Refresh recent projects
+      setRecentProjects(getRecentProjects());
+      // Navigate to appropriate editor based on project content
+      if (project.tilemap) {
+        window.location.href = "/tilemap-editor";
+      } else if (project.spritesheet) {
+        window.location.href = "/spritesheet-editor";
+      } else {
+        alert(`โปรเจค "${project.name}" โหลดสำเร็จ!`);
+      }
+    } else {
+      alert("ไม่สามารถโหลดโปรเจคได้ - รูปแบบไฟล์ไม่ถูกต้อง");
+    }
+    e.target.value = "";
+  };
+
   return (
     <MainLayout title="Game Asset Tool - Home">
       <div className="h-full overflow-auto ie-scrollbar p-2 md:p-4">
@@ -136,37 +173,56 @@ export function LandingView() {
                   </div>
                 </div>
 
+                {/* Hidden file input for opening projects */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".gat,.json"
+                  className="hidden"
+                  onChange={handleOpenProject}
+                />
+
                 {/* Recent Projects */}
                 <div className="ie-groupbox mt-2 md:mt-4">
                   <span className="ie-groupbox-title">Recent Projects</span>
                   <div className="ie-listview -mt-2 max-h-32 overflow-auto ie-scrollbar">
-                    <button
-                      className="ie-listview-item w-full text-left"
-                      onClick={() =>
-                        showComingSoon("Open Project: my-game-assets.gat")
-                      }
-                    >
-                      <span>📁</span>
-                      <span>my-game-assets.gat</span>
-                    </button>
-                    <button
-                      className="ie-listview-item w-full text-left"
-                      onClick={() =>
-                        showComingSoon("Open Project: platformer-tiles.gat")
-                      }
-                    >
-                      <span>📁</span>
-                      <span>platformer-tiles.gat</span>
-                    </button>
-                    <button
-                      className="ie-listview-item w-full text-left"
-                      onClick={() =>
-                        showComingSoon("Open Project: character-sprites.gat")
-                      }
-                    >
-                      <span>📁</span>
-                      <span>character-sprites.gat</span>
-                    </button>
+                    {recentProjects.length > 0 ? (
+                      recentProjects.map((project) => (
+                        <button
+                          key={project.name}
+                          className="ie-listview-item w-full text-left"
+                          onClick={() =>
+                            showComingSoon(`Open: ${project.name}`)
+                          }
+                        >
+                          <span>📁</span>
+                          <span className="truncate">{project.name}</span>
+                          <span className="text-[10px] text-gray-500 ml-auto">
+                            {new Date(project.updatedAt).toLocaleDateString()}
+                          </span>
+                        </button>
+                      ))
+                    ) : (
+                      <>
+                        <div className="text-xs text-gray-500 text-center py-2">
+                          No recent projects
+                        </div>
+                        <button
+                          className="ie-button ie-button-sm w-full"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          📂 Open Project File
+                        </button>
+                      </>
+                    )}
+                    {recentProjects.length > 0 && (
+                      <button
+                        className="ie-button ie-button-sm w-full mt-1"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        📂 Open Project File
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

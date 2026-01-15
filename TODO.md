@@ -500,11 +500,47 @@ src/
 7. ✅ Tilemap Import JSON (Custom, Tiled, Cocos, Phaser formats)
 8. ✅ Link from Landing page
 
-**Sprint 10: Next Features** 🔄 Current
+**Sprint 10: Advanced Features** ✅ Completed
 
-1. 🔄 Auto-tile rules (terrain matching)
-2. 🔄 Spritesheet onion skinning
-3. 🔄 Project management (Save/Load)
+1. ✅ Auto-tile rules (terrain matching) - 4x4 tile selection, bitmask painting
+2. ✅ Spritesheet onion skinning - Ghost frames with opacity control
+3. ✅ Project management - Storage utility, Recent projects, Save/Load .gat files
+
+**Sprint 11: UI Enhancements** ✅ Completed
+
+1. ✅ Seamless texture preview - Tiled preview with adjustable grid count
+2. ✅ Mini-map preview for tilemap - Overview with viewport indicator
+3. ✅ Animation states (Idle, Walk, Run, Jump, Attack, Hurt, Death, Custom)
+
+**Sprint 12: Game Engine Integration** ✅ Completed
+
+1. ✅ Collision layer for tilemap - Red overlay with visual indicators
+2. ✅ Animated tiles preview - Toggle animation in toolbar, frame cycling
+3. ✅ Export Cocos Creator animation format - Animation clips with states
+
+**Sprint 13: Editor Enhancements** ✅ Completed
+
+1. ✅ Undo/Redo for tilemap editor - History stack, Cmd+Z/Cmd+Shift+Z shortcuts
+2. ✅ Multi-tileset support - Tileset selector, add/remove tilesets
+3. ✅ Tile properties editor - Collision, animated, animation frames
+
+**Sprint 14: UX Improvements** ✅ Completed
+
+1. ✅ Keyboard shortcuts help dialog - Press `?` to open, styled kbd keys
+2. ✅ Recent files in tilemap editor - Shows 5 recent projects in sidebar
+3. ✅ Template maps presets - Empty, Platformer, Top-Down, Dungeon, Puzzle, Large World
+
+**Sprint 15: Advanced Editing** ✅ Completed
+
+1. ✅ Auto-save tilemap to localStorage - Every 30 seconds, saved projects list
+2. ✅ Copy/Paste tile selection - Select tool (5/S), ⌘C/⌘V to copy/paste
+3. ✅ Flip/Rotate tiles - Toggle buttons in toolbar
+
+**Sprint 16: Next Features** 🔄 Current
+
+1. 🔄 Stamp brush (place multiple tiles at once)
+2. 🔄 Selection fill (fill selected area)
+3. 🔄 Layer opacity slider
 
 ---
 

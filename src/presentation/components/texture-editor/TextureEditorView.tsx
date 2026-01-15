@@ -54,9 +54,14 @@ export default function TextureEditorView() {
 
   // Editor state
   const [zoom, setZoom] = useState(1);
-  const [activeTab, setActiveTab] = useState<"filters" | "9slice" | "effects">(
-    "filters"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "filters" | "9slice" | "effects" | "seamless"
+  >("filters");
+
+  // Seamless preview state
+  const [seamlessPreviewEnabled, setSeamlessPreviewEnabled] = useState(false);
+  const [seamlessTileCount, setSeamlessTileCount] = useState(3); // 3x3 grid
+  const seamlessCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // Filter state
   const [filter, setFilter] = useState<FilterType>("none");
@@ -533,6 +538,26 @@ export default function TextureEditorView() {
     draw9SlicePreview();
   }, [draw9SlicePreview]);
 
+  // Effect to draw seamless preview tiles
+  useEffect(() => {
+    if (!originalImage || !seamlessPreviewEnabled || activeTab !== "seamless")
+      return;
+
+    // Get all canvas elements in the seamless grid
+    const container = seamlessCanvasRef.current?.parentElement;
+    if (!container) return;
+
+    const canvases = container.querySelectorAll("canvas");
+    canvases.forEach((canvas) => {
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(originalImage, 0, 0);
+    });
+  }, [originalImage, seamlessPreviewEnabled, seamlessTileCount, activeTab]);
+
   // Export image
   const exportImage = () => {
     const canvas = canvasRef.current;
@@ -646,20 +671,23 @@ export default function TextureEditorView() {
           {/* Right Panel - Controls */}
           <div className="w-72 flex flex-col gap-2 overflow-auto">
             {/* Tab Buttons */}
-            <div className="flex gap-1">
-              {(["filters", "9slice", "effects"] as const).map((tab) => (
-                <button
-                  key={tab}
-                  className={`ie-button flex-1 text-xs ${
-                    activeTab === tab ? "ie-button-active" : ""
-                  }`}
-                  onClick={() => setActiveTab(tab)}
-                >
-                  {tab === "filters" && "🎨 Filters"}
-                  {tab === "9slice" && "📐 9-Slice"}
-                  {tab === "effects" && "✨ Effects"}
-                </button>
-              ))}
+            <div className="flex gap-1 flex-wrap">
+              {(["filters", "9slice", "effects", "seamless"] as const).map(
+                (tab) => (
+                  <button
+                    key={tab}
+                    className={`ie-button flex-1 text-xs ${
+                      activeTab === tab ? "ie-button-active" : ""
+                    }`}
+                    onClick={() => setActiveTab(tab)}
+                  >
+                    {tab === "filters" && "🎨 Filters"}
+                    {tab === "9slice" && "📐 9-Slice"}
+                    {tab === "effects" && "✨ Effects"}
+                    {tab === "seamless" && "🔄 Seamless"}
+                  </button>
+                )
+              )}
             </div>
 
             {/* Filters Tab */}
@@ -1061,6 +1089,96 @@ export default function TextureEditorView() {
                     )}
                   </div>
                 </div>
+              </>
+            )}
+
+            {/* Seamless Tab */}
+            {activeTab === "seamless" && (
+              <>
+                <div className="ie-groupbox">
+                  <span className="ie-groupbox-title">🔄 Seamless Preview</span>
+                  <div className="p-2 space-y-2 text-xs">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={seamlessPreviewEnabled}
+                        onChange={(e) =>
+                          setSeamlessPreviewEnabled(e.target.checked)
+                        }
+                      />
+                      Enable Tiled Preview
+                    </label>
+                    <div>
+                      <label>
+                        Tile Count: {seamlessTileCount}x{seamlessTileCount}
+                      </label>
+                      <input
+                        type="range"
+                        min="2"
+                        max="5"
+                        value={seamlessTileCount}
+                        onChange={(e) =>
+                          setSeamlessTileCount(parseInt(e.target.value))
+                        }
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Seamless Preview Canvas */}
+                {originalImage && seamlessPreviewEnabled && (
+                  <div className="ie-groupbox flex-1">
+                    <span className="ie-groupbox-title">Preview</span>
+                    <div
+                      className="ie-panel-inset p-2 overflow-auto"
+                      style={{ maxHeight: 300 }}
+                    >
+                      <div
+                        className="bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%228%22%20height%3D%228%22%3E%3Crect%20width%3D%224%22%20height%3D%224%22%20fill%3D%22%23444%22%2F%3E%3Crect%20x%3D%224%22%20y%3D%224%22%20width%3D%224%22%20height%3D%224%22%20fill%3D%22%23444%22%2F%3E%3C%2Fsvg%3E')]"
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: `repeat(${seamlessTileCount}, 1fr)`,
+                          gap: 0,
+                          width: "fit-content",
+                        }}
+                      >
+                        {Array.from({
+                          length: seamlessTileCount * seamlessTileCount,
+                        }).map((_, i) => (
+                          <canvas
+                            key={i}
+                            ref={i === 0 ? seamlessCanvasRef : undefined}
+                            width={originalImage.width}
+                            height={originalImage.height}
+                            style={{
+                              width: Math.min(60, originalImage.width),
+                              height: Math.min(60, originalImage.height),
+                              imageRendering: "pixelated",
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-gray-500 p-1 text-center">
+                      Drag edges to check seams
+                    </div>
+                  </div>
+                )}
+
+                {!seamlessPreviewEnabled && originalImage && (
+                  <div className="ie-panel-inset p-4 text-center text-xs text-gray-500">
+                    <div className="text-2xl mb-2">🔄</div>
+                    <p>Enable tiled preview to check texture seamlessness</p>
+                  </div>
+                )}
+
+                {!originalImage && (
+                  <div className="ie-panel-inset p-4 text-center text-xs text-gray-500">
+                    <div className="text-2xl mb-2">🖼️</div>
+                    <p>Load an image first</p>
+                  </div>
+                )}
               </>
             )}
           </div>

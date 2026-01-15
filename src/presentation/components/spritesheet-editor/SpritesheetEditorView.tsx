@@ -17,7 +17,35 @@ interface Animation {
   name: string;
   frames: Frame[];
   loop: boolean;
+  state?: AnimationState; // Animation state category
 }
+
+// Animation state templates for common game animations
+type AnimationState =
+  | "idle"
+  | "walk"
+  | "run"
+  | "jump"
+  | "attack"
+  | "hurt"
+  | "death"
+  | "custom";
+
+const ANIMATION_STATE_TEMPLATES: {
+  state: AnimationState;
+  label: string;
+  icon: string;
+  defaultFps: number;
+}[] = [
+  { state: "idle", label: "Idle", icon: "🧍", defaultFps: 8 },
+  { state: "walk", label: "Walk", icon: "🚶", defaultFps: 10 },
+  { state: "run", label: "Run", icon: "🏃", defaultFps: 12 },
+  { state: "jump", label: "Jump", icon: "⬆️", defaultFps: 8 },
+  { state: "attack", label: "Attack", icon: "⚔️", defaultFps: 15 },
+  { state: "hurt", label: "Hurt", icon: "💥", defaultFps: 10 },
+  { state: "death", label: "Death", icon: "💀", defaultFps: 6 },
+  { state: "custom", label: "Custom", icon: "✨", defaultFps: 12 },
+];
 
 export default function SpritesheetEditorView() {
   // Spritesheet state
@@ -43,6 +71,11 @@ export default function SpritesheetEditorView() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
   const [fps, setFps] = useState(12);
+
+  // Onion skinning
+  const [onionSkinEnabled, setOnionSkinEnabled] = useState(false);
+  const [onionSkinFrames, setOnionSkinFrames] = useState(2); // Number of ghost frames
+  const [onionSkinOpacity, setOnionSkinOpacity] = useState(0.3);
 
   // Canvas state
   const [zoom, setZoom] = useState(2);
@@ -183,6 +216,51 @@ export default function SpritesheetEditorView() {
 
     ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw onion skin frames (previous frames in red/pink tint)
+    if (onionSkinEnabled) {
+      for (let i = 1; i <= onionSkinFrames; i++) {
+        const prevIndex = currentFrameIndex - i;
+        if (prevIndex >= 0 && prevIndex < currentAnimation.frames.length) {
+          const prevFrame = currentAnimation.frames[prevIndex];
+          ctx.globalAlpha = onionSkinOpacity / i;
+          ctx.drawImage(
+            spritesheetImage,
+            prevFrame.x,
+            prevFrame.y,
+            prevFrame.width,
+            prevFrame.height,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+          );
+        }
+      }
+
+      // Draw onion skin frames (next frames in blue/cyan tint)
+      for (let i = 1; i <= onionSkinFrames; i++) {
+        const nextIndex = currentFrameIndex + i;
+        if (nextIndex >= 0 && nextIndex < currentAnimation.frames.length) {
+          const nextFrame = currentAnimation.frames[nextIndex];
+          ctx.globalAlpha = onionSkinOpacity / i;
+          ctx.drawImage(
+            spritesheetImage,
+            nextFrame.x,
+            nextFrame.y,
+            nextFrame.width,
+            nextFrame.height,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+          );
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // Draw current frame
     ctx.drawImage(
       spritesheetImage,
       frame.x,
@@ -194,7 +272,14 @@ export default function SpritesheetEditorView() {
       canvas.width,
       canvas.height
     );
-  }, [spritesheetImage, currentAnimation, currentFrameIndex]);
+  }, [
+    spritesheetImage,
+    currentAnimation,
+    currentFrameIndex,
+    onionSkinEnabled,
+    onionSkinFrames,
+    onionSkinOpacity,
+  ]);
 
   // Handle frame click
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -222,24 +307,39 @@ export default function SpritesheetEditorView() {
     }
   };
 
-  // Create animation from selected frames
-  const createAnimation = () => {
+  // Create animation from selected frames with state
+  const createAnimationWithState = (state: AnimationState) => {
     if (selectedFrames.length === 0) return;
 
-    const animName = `Animation ${animations.length + 1}`;
+    const template = ANIMATION_STATE_TEMPLATES.find((t) => t.state === state);
+    const animName =
+      state === "custom"
+        ? `Animation ${animations.length + 1}`
+        : `${template?.label || state}`;
     const animFrames = frames.filter((f) => selectedFrames.includes(f.id));
 
     const newAnimation: Animation = {
       id: generateId(),
       name: animName,
       frames: animFrames,
-      loop: true,
+      loop: state !== "death", // Death usually doesn't loop
+      state,
     };
 
     setAnimations((prev) => [...prev, newAnimation]);
     setCurrentAnimation(newAnimation);
     setSelectedFrames([]);
     setCurrentFrameIndex(0);
+
+    // Set FPS based on state template
+    if (template) {
+      setFps(template.defaultFps);
+    }
+  };
+
+  // Create animation from selected frames (legacy, defaults to custom)
+  const createAnimation = () => {
+    createAnimationWithState("custom");
   };
 
   // Delete animation
@@ -251,7 +351,7 @@ export default function SpritesheetEditorView() {
     }
   };
 
-  // Export animation data
+  // Export animation data (JSON format)
   const exportAnimations = () => {
     const data = {
       spritesheet: {
@@ -263,6 +363,7 @@ export default function SpritesheetEditorView() {
       animations: animations.map((anim) => ({
         name: anim.name,
         loop: anim.loop,
+        state: anim.state,
         frames: anim.frames.map((f) => ({
           x: f.x,
           y: f.y,
@@ -280,6 +381,78 @@ export default function SpritesheetEditorView() {
     const a = document.createElement("a");
     a.href = url;
     a.download = "spritesheet-animations.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Export Cocos Creator animation format
+  const exportCocosAnimations = () => {
+    if (!spritesheetImage) return;
+
+    // Generate Cocos Creator animation clips
+    const animationClips = animations.map((anim) => {
+      const frameDuration = 1 / fps;
+      const totalDuration = anim.frames.length * frameDuration;
+
+      return {
+        __type__: "cc.AnimationClip",
+        _name: anim.name,
+        _duration: totalDuration,
+        sample: fps,
+        speed: 1,
+        wrapMode: anim.loop ? 2 : 1, // 2 = Loop, 1 = Normal
+        curveData: {
+          comps: {
+            "cc.Sprite": {
+              spriteFrame: anim.frames.map((frame, index) => ({
+                frame: index * frameDuration,
+                value: {
+                  __uuid__: `frame_${anim.name}_${index}`,
+                },
+              })),
+            },
+          },
+        },
+        events: [],
+      };
+    });
+
+    // Generate sprite frames data
+    const spriteFrames = animations.flatMap((anim) =>
+      anim.frames.map((frame, index) => ({
+        name: `${anim.name}_${index}`,
+        rect: { x: frame.x, y: frame.y, w: frame.width, h: frame.height },
+        offset: { x: 0, y: 0 },
+        originalSize: { w: frame.width, h: frame.height },
+        rotated: false,
+      }))
+    );
+
+    const cocosData = {
+      ver: "1.0.0",
+      importer: "game-asset-tool",
+      spritesheet: {
+        width: spritesheetImage.width,
+        height: spritesheetImage.height,
+      },
+      frames: spriteFrames,
+      animations: animationClips,
+      // Animation state mapping for character controllers
+      states: animations.reduce((acc, anim) => {
+        if (anim.state) {
+          acc[anim.state] = anim.name;
+        }
+        return acc;
+      }, {} as Record<string, string>),
+    };
+
+    const blob = new Blob([JSON.stringify(cocosData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "cocos-animations.json";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -347,6 +520,23 @@ export default function SpritesheetEditorView() {
             disabled={!spritesheetImage}
           >
             🔲 Generate Frames
+          </button>
+
+          <div className="ie-separator" />
+
+          <button
+            className="ie-button"
+            onClick={exportAnimations}
+            disabled={animations.length === 0}
+          >
+            📥 Export JSON
+          </button>
+          <button
+            className="ie-button"
+            onClick={exportCocosAnimations}
+            disabled={animations.length === 0}
+          >
+            🎮 Export Cocos
           </button>
 
           <div className="ie-separator" />
@@ -438,6 +628,54 @@ export default function SpritesheetEditorView() {
                   </div>
                 )}
               </div>
+
+              {/* Onion Skinning Controls */}
+              <div className="ie-groupbox mt-2">
+                <span className="ie-groupbox-title">👻 Onion Skin</span>
+                <div className="space-y-1 -mt-2 text-xs">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={onionSkinEnabled}
+                      onChange={(e) => setOnionSkinEnabled(e.target.checked)}
+                    />
+                    Enable Onion Skin
+                  </label>
+                  {onionSkinEnabled && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span>Frames:</span>
+                        <input
+                          type="number"
+                          className="ie-input w-12 text-xs"
+                          value={onionSkinFrames}
+                          onChange={(e) =>
+                            setOnionSkinFrames(parseInt(e.target.value) || 1)
+                          }
+                          min={1}
+                          max={5}
+                        />
+                      </div>
+                      <div>
+                        <span>
+                          Opacity: {Math.round(onionSkinOpacity * 100)}%
+                        </span>
+                        <input
+                          type="range"
+                          className="w-full"
+                          value={onionSkinOpacity}
+                          onChange={(e) =>
+                            setOnionSkinOpacity(parseFloat(e.target.value))
+                          }
+                          min={0.1}
+                          max={0.8}
+                          step={0.1}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Frame Selection */}
@@ -476,13 +714,26 @@ export default function SpritesheetEditorView() {
                   </div>
                 )}
               </div>
-              <button
-                className="ie-button mt-1 text-xs"
-                onClick={createAnimation}
-                disabled={selectedFrames.length === 0}
-              >
-                ➕ Create Animation from Selection
-              </button>
+              {/* Animation State Buttons */}
+              <div className="mt-2 space-y-1">
+                <div className="text-[10px] text-gray-500 text-center">
+                  Create as Animation State:
+                </div>
+                <div className="grid grid-cols-4 gap-1">
+                  {ANIMATION_STATE_TEMPLATES.map((template) => (
+                    <button
+                      key={template.state}
+                      className="ie-button text-xs p-1 flex flex-col items-center"
+                      onClick={() => createAnimationWithState(template.state)}
+                      disabled={selectedFrames.length === 0}
+                      title={`${template.label} (${template.defaultFps} FPS)`}
+                    >
+                      <span>{template.icon}</span>
+                      <span className="text-[9px]">{template.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Animations List */}
@@ -506,7 +757,12 @@ export default function SpritesheetEditorView() {
                           setCurrentFrameIndex(0);
                         }}
                       >
-                        <span className="text-xs">
+                        <span className="text-xs flex items-center gap-1">
+                          <span>
+                            {ANIMATION_STATE_TEMPLATES.find(
+                              (t) => t.state === anim.state
+                            )?.icon || "✨"}
+                          </span>
                           {anim.name} ({anim.frames.length}f)
                         </span>
                         <button
