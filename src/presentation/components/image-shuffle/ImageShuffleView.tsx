@@ -292,45 +292,64 @@ export default function ImageShuffleView() {
               </p>
               
               <div className="flex justify-center">
-                <div
-                  className="relative border-2 border-dashed border-success rounded"
-                  style={{
-                    width: Math.min(shuffleData.imageWidth, 500),
-                    height: Math.min(shuffleData.imageHeight, 500) * (shuffleData.imageWidth > 500 ? 500 / shuffleData.imageWidth : 1),
-                    display: "grid",
-                    gridTemplateColumns: `repeat(${shuffleData.gridSize}, 1fr)`,
-                    gridTemplateRows: `repeat(${shuffleData.gridSize}, 1fr)`,
-                  }}
-                >
-                  {/* Render blocks using CSS background-position */}
-                  {Array.from({ length: shuffleData.gridSize * shuffleData.gridSize }).map((_, originalIndex) => {
-                    // Find which shuffled position contains this original block
-                    const shuffledPosition = shuffleData.shuffleMap.indexOf(originalIndex);
-                    
-                    // Calculate background position from shuffled image
-                    const scale = Math.min(500 / shuffleData.imageWidth, 1);
-                    const displayBlockWidth = shuffleData.blockWidth * scale;
-                    const displayBlockHeight = shuffleData.blockHeight * scale;
-                    
-                    // Position in shuffled image where this original block is located
-                    const shuffledCol = shuffledPosition % shuffleData.gridSize;
-                    const shuffledRow = Math.floor(shuffledPosition / shuffleData.gridSize);
-                    
-                    return (
-                      <div
-                        key={originalIndex}
-                        style={{
-                          backgroundImage: `url(${shuffledImageUrl})`,
-                          backgroundSize: `${shuffleData.imageWidth * scale}px ${shuffleData.imageHeight * scale}px`,
-                          backgroundPosition: `-${shuffledCol * displayBlockWidth}px -${shuffledRow * displayBlockHeight}px`,
-                          width: displayBlockWidth,
-                          height: displayBlockHeight,
-                        }}
-                        title={`Original Block ${originalIndex} from Shuffled Position ${shuffledPosition}`}
-                      />
-                    );
-                  })}
-                </div>
+                {(() => {
+                  // Calculate uniform scale based on max display size
+                  const maxDisplaySize = 500;
+                  const scale = Math.min(
+                    maxDisplaySize / shuffleData.imageWidth,
+                    maxDisplaySize / shuffleData.imageHeight,
+                    1
+                  );
+                  const displayWidth = shuffleData.imageWidth * scale;
+                  const displayHeight = shuffleData.imageHeight * scale;
+                  const displayBlockWidth = shuffleData.blockWidth * scale;
+                  const displayBlockHeight = shuffleData.blockHeight * scale;
+
+                  return (
+                    <div
+                      className="relative border-2 border-dashed border-success rounded overflow-hidden"
+                      style={{
+                        width: displayWidth,
+                        height: displayHeight,
+                        display: "grid",
+                        gridTemplateColumns: `repeat(${shuffleData.gridSize}, ${displayBlockWidth}px)`,
+                        gridTemplateRows: `repeat(${shuffleData.gridSize}, ${displayBlockHeight}px)`,
+                        gap: 0,
+                        lineHeight: 0,
+                        fontSize: 0,
+                      }}
+                    >
+                      {/* Render blocks using CSS background-position */}
+                      {Array.from({ length: shuffleData.gridSize * shuffleData.gridSize }).map((_, originalIndex) => {
+                        // Find which shuffled position contains this original block
+                        const shuffledPosition = shuffleData.shuffleMap.indexOf(originalIndex);
+                        
+                        // Position in shuffled image where this original block is located
+                        const shuffledCol = shuffledPosition % shuffleData.gridSize;
+                        const shuffledRow = Math.floor(shuffledPosition / shuffleData.gridSize);
+                        
+                        return (
+                          <div
+                            key={originalIndex}
+                            style={{
+                              backgroundImage: `url(${shuffledImageUrl})`,
+                              backgroundSize: `${displayWidth}px ${displayHeight}px`,
+                              backgroundPosition: `-${shuffledCol * displayBlockWidth}px -${shuffledRow * displayBlockHeight}px`,
+                              backgroundRepeat: "no-repeat",
+                              width: displayBlockWidth,
+                              height: displayBlockHeight,
+                              display: "block",
+                              imageRendering: "crisp-edges",
+                              margin: 0,
+                              padding: 0,
+                            }}
+                            title={`Original Block ${originalIndex} from Shuffled Position ${shuffledPosition}`}
+                          />
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
