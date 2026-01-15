@@ -1,9 +1,9 @@
 "use client";
 
 import {
-  getRecentProjects,
-  loadProjectFromFile,
-  type RecentProject,
+    getRecentProjects,
+    loadProjectFromFile,
+    type RecentProject,
 } from "@/src/infrastructure/storage/projectStorage";
 import { ComingSoonModal } from "@/src/presentation/components/molecules/ComingSoonModal";
 import { MainLayout } from "@/src/presentation/components/templates/MainLayout";
@@ -66,6 +66,12 @@ const features: FeatureCard[] = [
     title: "Multi-Export",
     description: "Export ไปยัง Cocos, Phaser, Unity และอื่นๆ",
     href: "/multi-export",
+  },
+  {
+    icon: "🧩",
+    title: "Image Shuffle",
+    description: "สับเปลี่ยน Block รูปภาพ พร้อม CSS Reconstruction",
+    href: "/image-shuffle",
   },
 ];
 
