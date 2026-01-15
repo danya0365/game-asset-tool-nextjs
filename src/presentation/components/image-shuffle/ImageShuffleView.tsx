@@ -15,11 +15,13 @@ interface ShuffleData {
 export default function ImageShuffleView() {
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
   const [shuffledImageUrl, setShuffledImageUrl] = useState<string>("");
+  const [reconstructedImageUrl, setReconstructedImageUrl] = useState<string>("");
   const [shuffleData, setShuffleData] = useState<ShuffleData | null>(null);
   const [gridSize, setGridSize] = useState<number>(4);
   const [isProcessing, setIsProcessing] = useState(false);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const reconstructCanvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fisher-Yates shuffle algorithm
@@ -107,14 +109,52 @@ export default function ImageShuffleView() {
     const shuffleMap = shuffledIndices;
 
     // Store shuffle data
-    setShuffleData({
+    const newShuffleData = {
       gridSize,
       blockWidth,
       blockHeight,
       imageWidth: actualWidth,
       imageHeight: actualHeight,
       shuffleMap,
-    });
+    };
+    setShuffleData(newShuffleData);
+
+    // Generate reconstructed image using canvas (avoids CSS sub-pixel issues)
+    const reconstructCanvas = reconstructCanvasRef.current;
+    if (reconstructCanvas) {
+      const rctx = reconstructCanvas.getContext("2d");
+      if (rctx) {
+        reconstructCanvas.width = actualWidth;
+        reconstructCanvas.height = actualHeight;
+        rctx.clearRect(0, 0, actualWidth, actualHeight);
+        
+        // Draw blocks back to original positions
+        for (let originalIndex = 0; originalIndex < totalBlocks; originalIndex++) {
+          // Find which shuffled position contains this original block
+          const shuffledPosition = shuffleMap.indexOf(originalIndex);
+          
+          // Source from shuffled canvas
+          const srcCol = shuffledPosition % gridSize;
+          const srcRow = Math.floor(shuffledPosition / gridSize);
+          const srcX = srcCol * blockWidth;
+          const srcY = srcRow * blockHeight;
+          
+          // Destination in reconstructed (original position)
+          const destCol = originalIndex % gridSize;
+          const destRow = Math.floor(originalIndex / gridSize);
+          const destX = destCol * blockWidth;
+          const destY = destRow * blockHeight;
+          
+          rctx.drawImage(
+            canvas,
+            srcX, srcY, blockWidth, blockHeight,
+            destX, destY, blockWidth, blockHeight
+          );
+        }
+        
+        setReconstructedImageUrl(reconstructCanvas.toDataURL("image/png"));
+      }
+    }
 
     setIsProcessing(false);
   }, [originalImage, gridSize]);
@@ -280,76 +320,28 @@ export default function ImageShuffleView() {
             </div>
           </div>
 
-          {/* CSS Reconstruction Display */}
-          {shuffleData && shuffledImageUrl && (
+          {/* Canvas-based Reconstruction Display */}
+          {reconstructedImageUrl && shuffleData && (
             <div className="p-4 bg-surface border border-border rounded-lg">
               <h2 className="text-lg font-semibold text-foreground mb-3">
-                ✨ CSS Block Reconstruction (แสดงรูปต้นฉบับจาก Shuffled Data)
+                ✨ Reconstructed Image (จาก Shuffled Data)
               </h2>
               <p className="text-sm text-muted mb-4">
-                ใช้ CSS <code className="px-1 py-0.5 bg-muted-light dark:bg-muted-dark rounded">background-position</code> 
-                เพื่อเรียงบล็อกจาก shuffled image กลับเป็นรูปต้นฉบับ
+                รูปภาพต้นฉบับที่ประกอบกลับจาก shuffled image โดยใช้ข้อมูล JSON mapping
               </p>
               
               <div className="flex justify-center">
-                {(() => {
-                  // Calculate uniform scale based on max display size
-                  const maxDisplaySize = 500;
-                  const scale = Math.min(
-                    maxDisplaySize / shuffleData.imageWidth,
-                    maxDisplaySize / shuffleData.imageHeight,
-                    1
-                  );
-                  const displayWidth = shuffleData.imageWidth * scale;
-                  const displayHeight = shuffleData.imageHeight * scale;
-                  const displayBlockWidth = shuffleData.blockWidth * scale;
-                  const displayBlockHeight = shuffleData.blockHeight * scale;
-
-                  return (
-                    <div
-                      className="relative border-2 border-dashed border-success rounded overflow-hidden"
-                      style={{
-                        width: displayWidth,
-                        height: displayHeight,
-                        display: "grid",
-                        gridTemplateColumns: `repeat(${shuffleData.gridSize}, ${displayBlockWidth}px)`,
-                        gridTemplateRows: `repeat(${shuffleData.gridSize}, ${displayBlockHeight}px)`,
-                        gap: 0,
-                        lineHeight: 0,
-                        fontSize: 0,
-                      }}
-                    >
-                      {/* Render blocks using CSS background-position */}
-                      {Array.from({ length: shuffleData.gridSize * shuffleData.gridSize }).map((_, originalIndex) => {
-                        // Find which shuffled position contains this original block
-                        const shuffledPosition = shuffleData.shuffleMap.indexOf(originalIndex);
-                        
-                        // Position in shuffled image where this original block is located
-                        const shuffledCol = shuffledPosition % shuffleData.gridSize;
-                        const shuffledRow = Math.floor(shuffledPosition / shuffleData.gridSize);
-                        
-                        return (
-                          <div
-                            key={originalIndex}
-                            style={{
-                              backgroundImage: `url(${shuffledImageUrl})`,
-                              backgroundSize: `${displayWidth}px ${displayHeight}px`,
-                              backgroundPosition: `-${shuffledCol * displayBlockWidth}px -${shuffledRow * displayBlockHeight}px`,
-                              backgroundRepeat: "no-repeat",
-                              width: displayBlockWidth,
-                              height: displayBlockHeight,
-                              display: "block",
-                              imageRendering: "crisp-edges",
-                              margin: 0,
-                              padding: 0,
-                            }}
-                            title={`Original Block ${originalIndex} from Shuffled Position ${shuffledPosition}`}
-                          />
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
+                <div className="border-2 border-dashed border-success rounded overflow-hidden">
+                  <img
+                    src={reconstructedImageUrl}
+                    alt="Reconstructed"
+                    style={{
+                      maxWidth: "100%",
+                      maxHeight: "500px",
+                      objectFit: "contain",
+                    }}
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -366,6 +358,7 @@ export default function ImageShuffleView() {
 
           {/* Hidden Canvas for processing */}
           <canvas ref={canvasRef} className="hidden" />
+          <canvas ref={reconstructCanvasRef} className="hidden" />
         </div>
       </div>
     </MainLayout>
