@@ -543,14 +543,20 @@ export interface [PageName]ViewModel {
 /**
  * Presenter for [PageName] management
  * ✅ Receives repository via constructor injection (not Supabase directly)
+ * ✅ Serves as the Single Source of Truth for both UI Views and API Routes
  */
 export class [PageName]Presenter {
   constructor(
     private readonly repository: I[PageItem]Repository
   ) {}
 
+  // ============================================================
+  // VIEW MODEL METHODS (For Client/Server Components)
+  // ============================================================
+
   /**
    * Get view model for the page
+   * ⚠️ Use this ONLY for rendering UI views, NOT for API route responses
    */
   async getViewModel(page: number = 1, perPage: number = 10): Promise<[PageName]ViewModel> {
     try {
@@ -582,6 +588,11 @@ export class [PageName]Presenter {
       description: "ระบบจัดการ[PageThaiDescription]",
     };
   }
+
+  // ============================================================
+  // GRANULAR DATA METHODS (For API Routes & Individual Actions)
+  // ============================================================
+  // ⚠️ API Routes MUST call these methods individually rather than using getViewModel()
 
   /**
    * Create a new item
