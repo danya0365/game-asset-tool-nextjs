@@ -73,6 +73,12 @@ const features: FeatureCard[] = [
     description: "สับเปลี่ยน Block รูปภาพ พร้อม CSS Reconstruction",
     href: "/image-shuffle",
   },
+  {
+    icon: "📉",
+    title: "Reduce Photo Size",
+    description: "ย่อขนาดรูปภาพ Batch พร้อมบีบอัด JPEG / PNG / WebP",
+    href: "/reduce-photo-size",
+  },
 ];
 
 const quickActions: QuickAction[] = [
