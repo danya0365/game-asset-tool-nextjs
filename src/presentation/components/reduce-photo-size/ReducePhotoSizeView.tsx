@@ -2,7 +2,13 @@
 
 import UPNG from "upng-js";
 import JSZip from "jszip";
-import React, { useCallback, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { MainLayout } from "../templates/MainLayout";
 
 type OutputFormat = "jpeg" | "png" | "webp";
@@ -24,13 +30,15 @@ interface PhotoFile {
   resultWidth?: number;
   resultHeight?: number;
   resultFormat: OutputFormat | null;
+  resultKey: string | null; // settingsKey this row's result was encoded with
+  sourceFormat: OutputFormat; // from file.type — used by "auto" format
   originalBlob: Blob; // original file — used when shrink impossible
   usedOriginal: boolean; // true → shipped the original file
   note?: string; // e.g. target mode: "เข้าเป้าไม่ได้ ใกล้สุด = N KB"
 }
 
 interface Settings {
-  format: OutputFormat;
+  format: OutputFormat | "auto";
   quality: number;
   resizeMode: ResizeMode;
   percent: number;
@@ -43,12 +51,6 @@ const MIME: Record<OutputFormat, string> = {
   jpeg: "image/jpeg",
   png: "image/png",
   webp: "image/webp",
-};
-
-const FORMAT_LABEL: Record<OutputFormat, string> = {
-  jpeg: "JPEG",
-  png: "PNG",
-  webp: "WebP",
 };
 
 const PALETTE_STEPS = [256, 128, 64, 32, 16, 8, 4] as const;
@@ -74,6 +76,13 @@ const PNG_MODES: { value: PngMode; label: string; hint: string }[] = [
     hint: "ลอง palette จนได้ตามเป้า",
   },
 ];
+
+// Map source mime type to output format ("auto" keeps the original format)
+const formatFromMime = (mime: string): OutputFormat => {
+  if (mime === "image/png") return "png";
+  if (mime === "image/webp") return "webp";
+  return "jpeg"; // jpeg, gif, bmp, svg, ... → jpeg
+};
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
@@ -109,24 +118,46 @@ const calcTargetSize = (
 export default function ReducePhotoSizeView() {
   const [photos, setPhotos] = useState<PhotoFile[]>([]);
   const [settings, setSettings] = useState<Settings>({
-    format: "jpeg",
+    format: "auto",
     quality: 85,
     resizeMode: "percent",
     percent: 50,
     maxDim: 1024,
-    pngMode: "lossless",
+    pngMode: "palette",
     targetKB: 500,
   });
   const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // live re-render engine refs
+  const runGenRef = useRef(0);
+  const photosRef = useRef(photos);
+  photosRef.current = photos;
+
+  const settingsKey = useMemo(
+    () =>
+      JSON.stringify({
+        format: settings.format,
+        quality: settings.quality,
+        resizeMode: settings.resizeMode,
+        percent: settings.percent,
+        maxDim: settings.maxDim,
+        pngMode: settings.pngMode,
+        targetKB: settings.targetKB,
+      }),
+    [settings]
+  );
 
   const processFile = useCallback(
     async (photo: PhotoFile): Promise<PhotoFile> => {
       const img = await loadImage(photo.preview);
+      // "auto" keeps each file's own format (TinyPNG-style)
+      const format =
+        settings.format === "auto" ? photo.sourceFormat : settings.format;
       const { outW, outH } = calcTargetSize(photo.width, photo.height, settings);
 
       const canvas = canvasRef.current;
@@ -138,14 +169,14 @@ export default function ReducePhotoSizeView() {
       if (!ctx) throw new Error("ไม่สามารถสร้าง canvas context ได้");
 
       // JPEG has no alpha — composite onto white instead of black
-      if (settings.format === "jpeg") {
+      if (format === "jpeg") {
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, outW, outH);
       }
 
       ctx.drawImage(img, 0, 0, outW, outH);
 
-      if (settings.format === "png") {
+      if (format === "png") {
         // Lossy/lossless PNG via upng-js palette quantization (canvas.toBlob
         // re-encodes lossless RGBA32 which can be BIGGER than the original)
         const rgba = ctx.getImageData(0, 0, outW, outH).data;
@@ -198,6 +229,7 @@ export default function ReducePhotoSizeView() {
             resultWidth: photo.width,
             resultHeight: photo.height,
             resultFormat: "png",
+            resultKey: settingsKey,
             usedOriginal: true,
             note: undefined,
           };
@@ -212,12 +244,13 @@ export default function ReducePhotoSizeView() {
           resultWidth: outW,
           resultHeight: outH,
           resultFormat: "png",
+          resultKey: settingsKey,
           usedOriginal: false,
           note,
         };
       }
 
-      const mime = MIME[settings.format];
+      const mime = MIME[format];
       const quality = settings.quality / 100;
       const blob = await new Promise<Blob>((resolve, reject) =>
         canvas.toBlob(
@@ -235,107 +268,135 @@ export default function ReducePhotoSizeView() {
         resultSize: blob.size,
         resultWidth: outW,
         resultHeight: outH,
-        resultFormat: settings.format,
+        resultFormat: format,
+        resultKey: settingsKey,
         usedOriginal: false,
       };
     },
-    [settings]
+    [settings, settingsKey]
   );
 
-  const runBatch = useCallback(
-    async (items: PhotoFile[]) => {
+  // Live re-render engine: any settings/photo change re-encodes stale rows
+  // automatically (debounced) — no "process" button needed.
+  useEffect(() => {
+    const stale = photos.filter(
+      (p) => p.resultKey !== settingsKey && p.status !== "error"
+    );
+    if (stale.length === 0) {
+      setIsProcessing(false);
+      return;
+    }
+    const genRef = runGenRef;
+    const gen = ++genRef.current;
+    // PNG target mode runs a multi-pass palette loop per row — give it room
+    const delay =
+      settings.format === "png" && settings.pngMode === "target" ? 700 : 200;
+    const t = setTimeout(async () => {
+      // re-read at fire time — a run that committed mid-debounce may have
+      // already refreshed some rows (photosRef avoids re-encoding them)
+      const current = photosRef.current.filter(
+        (p) => p.resultKey !== settingsKey && p.status !== "error"
+      );
+      if (current.length === 0) {
+        setIsProcessing(false);
+        return;
+      }
       setIsProcessing(true);
-      setProgress(0);
-
       const results: Record<string, PhotoFile> = {};
-      for (let i = 0; i < items.length; i++) {
+      for (const item of current) {
+        if (runGenRef.current !== gen) return; // superseded — drop
         try {
-          results[items[i].id] = await processFile({
-            ...items[i],
+          results[item.id] = await processFile({
+            ...item,
             status: "processing",
           });
         } catch (err) {
-          results[items[i].id] = {
-            ...items[i],
+          results[item.id] = {
+            ...item,
             status: "error",
             error: err instanceof Error ? err.message : "เกิดข้อผิดพลาด",
           };
         }
-        setProgress(Math.round(((i + 1) / items.length) * 100));
       }
-
+      if (runGenRef.current !== gen) return; // superseded — drop commit
+      // note: results whose URL was created for a discarded run leak until
+      // page unload (tiny; acceptable)
       setPhotos((prev) => prev.map((p) => results[p.id] ?? p));
       setIsProcessing(false);
-    },
-    [processFile]
-  );
+    }, delay);
+    return () => {
+      clearTimeout(t);
+      genRef.current++; // supersede pending timer + stale runs
+    };
+  }, [settingsKey, photos, processFile, settings.format, settings.pngMode]);
 
-  const processAll = useCallback(() => {
-    if (isProcessing || photos.length === 0) return;
-    runBatch(photos);
-  }, [isProcessing, photos, runBatch]);
+  const addFiles = useCallback(async (files: FileList | File[]) => {
+    const newPhotos: PhotoFile[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!file.type.startsWith("image/")) continue;
+
+      const preview = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => resolve(ev.target?.result as string);
+        reader.readAsDataURL(file);
+      });
+
+      try {
+        const img = await loadImage(preview);
+        newPhotos.push({
+          id: generateId(),
+          name: file.name,
+          preview,
+          width: img.width,
+          height: img.height,
+          originalSize: file.size,
+          status: "pending",
+          resultUrl: null,
+          resultBlob: null,
+          resultSize: null,
+          resultFormat: null,
+          resultKey: null,
+          sourceFormat: formatFromMime(file.type),
+          originalBlob: file,
+          usedOriginal: false,
+        });
+      } catch {
+        newPhotos.push({
+          id: generateId(),
+          name: file.name,
+          preview,
+          width: 0,
+          height: 0,
+          originalSize: file.size,
+          status: "error",
+          error: "ไม่ใช่ไฟล์รูปภาพที่อ่านได้",
+          resultUrl: null,
+          resultBlob: null,
+          resultSize: null,
+          resultFormat: null,
+          resultKey: null,
+          sourceFormat: "jpeg",
+          originalBlob: file,
+          usedOriginal: false,
+        });
+      }
+    }
+
+    if (newPhotos.length > 0) {
+      // the live re-render effect picks these up automatically
+      setPhotos((prev) => [...prev, ...newPhotos]);
+    }
+  }, []);
 
   const handleFileChange = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
       if (!files) return;
-
-      const newPhotos: PhotoFile[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (!file.type.startsWith("image/")) continue;
-
-        const preview = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (ev) => resolve(ev.target?.result as string);
-          reader.readAsDataURL(file);
-        });
-
-        try {
-          const img = await loadImage(preview);
-          newPhotos.push({
-            id: generateId(),
-            name: file.name,
-            preview,
-            width: img.width,
-            height: img.height,
-            originalSize: file.size,
-            status: "pending",
-            resultUrl: null,
-            resultBlob: null,
-            resultSize: null,
-            resultFormat: null,
-            originalBlob: file,
-            usedOriginal: false,
-          });
-        } catch {
-          newPhotos.push({
-            id: generateId(),
-            name: file.name,
-            preview,
-            width: 0,
-            height: 0,
-            originalSize: file.size,
-            status: "error",
-            error: "ไม่ใช่ไฟล์รูปภาพที่อ่านได้",
-            resultUrl: null,
-            resultBlob: null,
-            resultSize: null,
-            resultFormat: null,
-            originalBlob: file,
-            usedOriginal: false,
-          });
-        }
-      }
-
-      if (newPhotos.length > 0) {
-        setPhotos((prev) => [...prev, ...newPhotos]);
-        // Auto-process new batch with current settings
-        await runBatch(newPhotos);
-      }
+      void addFiles(files);
       e.target.value = "";
     },
-    [runBatch]
+    [addFiles]
   );
 
   const removePhoto = (id: string) => {
@@ -351,7 +412,6 @@ export default function ReducePhotoSizeView() {
       if (p.resultUrl) URL.revokeObjectURL(p.resultUrl);
     });
     setPhotos([]);
-    setProgress(0);
   };
 
   const downloadPhoto = (photo: PhotoFile) => {
@@ -402,6 +462,12 @@ export default function ReducePhotoSizeView() {
     totalOriginal > 0
       ? Math.round(((totalOriginal - totalResult) / totalOriginal) * 100)
       : 0;
+  const hasStale = photos.some(
+    (p) => p.resultKey !== settingsKey && p.status !== "error"
+  );
+  const busy = isProcessing || hasStale;
+  const pngPaletteActive =
+    settings.format === "png" && settings.pngMode === "palette";
 
   const formatSize = (bytes: number) =>
     bytes >= 1024 * 1024
@@ -439,78 +505,315 @@ export default function ReducePhotoSizeView() {
     );
   };
 
-  const formatBtn = (fmt: OutputFormat, icon: string) => (
-    <button
-      className={`ie-button w-full text-left mb-1 ${
-        settings.format === fmt ? "ie-button-active bg-blue-100 dark:bg-blue-900" : ""
-      }`}
-      onClick={() => setSettings((s) => ({ ...s, format: fmt }))}
-    >
-      {icon} {FORMAT_LABEL[fmt]}
-    </button>
-  );
-
   return (
     <MainLayout title="Reduce Photo Size - Game Asset Tool">
       <div className="ie-window-content flex flex-col h-full">
-        {/* Toolbar */}
-        <div className="ie-toolbar mb-2 flex items-center gap-2 flex-wrap">
-          <button
-            className="ie-button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isProcessing}
-          >
-            📁 เลือกรูปภาพ
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={handleFileChange}
-          />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={handleFileChange}
+        />
 
-          <div className="ie-separator" />
+        {photos.length === 0 ? (
+          /* ===== Idle: drop zone, zero settings ===== */
+          <>
+            <div
+              className={`ie-panel-inset flex-1 flex items-center justify-center cursor-pointer transition-colors border-2 border-dashed ${
+                isDragging
+                  ? "bg-blue-100 dark:bg-blue-900 border-blue-400"
+                  : "border-gray-400 dark:border-gray-600"
+              }`}
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                setIsDragging(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragging(false);
+                if (e.dataTransfer.files?.length) {
+                  void addFiles(e.dataTransfer.files);
+                }
+              }}
+            >
+              <div className="text-center px-4">
+                <div className="text-5xl mb-3">📉</div>
+                <div className="text-sm text-gray-700 dark:text-gray-300">
+                  ลากไฟล์ภาพมาวางที่นี่ หรือ
+                </div>
+                <button
+                  className="ie-button mt-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
+                >
+                  📁 เลือกไฟล์
+                </button>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  รองรับ PNG / JPEG / WebP หลายไฟล์พร้อมกัน
+                </div>
+              </div>
+            </div>
+            <div className="ie-statusbar mt-2">
+              <span className="text-xs">
+                ยังไม่มีรูปภาพ — ลากไฟล์ภาพมาวาง
+              </span>
+            </div>
+          </>
+        ) : (
+          /* ===== Files present: toolbar + results ===== */
+          <>
+            {/* Settings bar — changes re-render live, no button needed */}
+            <div className="ie-toolbar mb-2 flex items-center gap-2 flex-wrap">
+              <button
+                className="ie-button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={busy}
+              >
+                📁 เพิ่มรูปภาพ
+              </button>
+              <button
+                className="ie-button"
+                onClick={clearAll}
+                disabled={busy}
+              >
+                🗑️ ล้างทั้งหมด
+              </button>
 
-          <button
-            className="ie-button"
-            onClick={clearAll}
-            disabled={photos.length === 0 || isProcessing}
-          >
-            🗑️ ล้างทั้งหมด
-          </button>
+              <div className="ie-separator" />
 
-          <div className="flex-1" />
+              <label className="text-xs text-gray-700 dark:text-gray-300">
+                รูปแบบ:
+              </label>
+              <select
+                className="ie-input"
+                value={settings.format}
+                onChange={(e) =>
+                  setSettings((s) => ({
+                    ...s,
+                    format: e.target.value as Settings["format"],
+                  }))
+                }
+              >
+                <option value="auto">Auto (ตามไฟล์เดิม)</option>
+                <option value="jpeg">JPEG</option>
+                <option value="png">PNG</option>
+                <option value="webp">WebP</option>
+              </select>
 
-          <button
-            className="ie-button bg-green-600 text-white font-bold px-4"
-            onClick={processAll}
-            disabled={photos.length === 0 || isProcessing}
-          >
-            {isProcessing ? "⏳ กำลังประมวลผล..." : "⚙️ ประมวลผล"}
-          </button>
+              <span className="text-xs text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                {pngPaletteActive
+                  ? `จำนวนสี: ${paletteFor(settings.quality)}`
+                  : `คุณภาพ: ${settings.quality}`}
+              </span>
+              <input
+                type="range"
+                min={1}
+                max={100}
+                value={settings.quality}
+                onChange={(e) =>
+                  setSettings((s) => ({
+                    ...s,
+                    quality: Number(e.target.value),
+                  }))
+                }
+                className="w-32"
+                disabled={
+                  settings.format === "png" && settings.pngMode !== "palette"
+                }
+              />
 
-          <button
-            className="ie-button bg-blue-600 text-white font-bold px-4"
-            onClick={downloadAll}
-            disabled={isProcessing || donePhotos.length === 0}
-          >
-            📦 Download All (ZIP)
-          </button>
-        </div>
+              <button
+                className="ie-button ie-button-sm"
+                onClick={() => setAdvancedOpen((v) => !v)}
+              >
+                ⚙️ ขั้นสูง{advancedOpen ? " ▲" : " ▼"}
+              </button>
 
-        {/* Main Content */}
-        <div className="flex flex-1 gap-2 overflow-hidden">
-          {/* Left Panel - Photo List */}
-          <div className="flex-1 flex flex-col gap-2">
-            <div className="ie-groupbox flex-1 overflow-hidden flex flex-col">
+              <div className="flex-1" />
+
+              <button
+                className="ie-button bg-green-600 text-white font-bold px-4"
+                onClick={downloadAll}
+                disabled={busy || donePhotos.length === 0}
+              >
+                📦 Download All (ZIP)
+              </button>
+            </div>
+
+            {/* Advanced settings (progressive disclosure) */}
+            {advancedOpen && (
+              <div className="ie-groupbox mb-2">
+                <span className="ie-groupbox-title">🔧 การตั้งค่าขั้นสูง</span>
+                <div className="p-2 -mt-2 flex flex-wrap gap-x-8 gap-y-3">
+                  <div className="min-w-[200px]">
+                    <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      📐 ขนาดภาพ
+                    </div>
+                    <div className="space-y-1">
+                      <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="resizeMode"
+                          checked={settings.resizeMode === "percent"}
+                          onChange={() =>
+                            setSettings((s) => ({ ...s, resizeMode: "percent" }))
+                          }
+                        />
+                        โหมด % (เทียบขนาดเดิม)
+                      </label>
+                      <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="resizeMode"
+                          checked={settings.resizeMode === "maxdim"}
+                          onChange={() =>
+                            setSettings((s) => ({ ...s, resizeMode: "maxdim" }))
+                          }
+                        />
+                        โหมด Max Dimension
+                      </label>
+                      {settings.resizeMode === "percent" ? (
+                        <>
+                          <div className="text-xs text-gray-700 dark:text-gray-300">
+                            เปอร์เซ็นต์: {settings.percent}%
+                          </div>
+                          <input
+                            type="range"
+                            min={1}
+                            max={100}
+                            value={settings.percent}
+                            onChange={(e) =>
+                              setSettings((s) => ({
+                                ...s,
+                                percent: Number(e.target.value),
+                              }))
+                            }
+                            className="w-full"
+                          />
+                          <div className="flex gap-1">
+                            {[25, 50, 75, 100].map((p) => (
+                              <button
+                                key={p}
+                                className="ie-button ie-button-sm"
+                                onClick={() =>
+                                  setSettings((s) => ({ ...s, percent: p }))
+                                }
+                              >
+                                {p}%
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min={16}
+                            value={settings.maxDim}
+                            onChange={(e) =>
+                              setSettings((s) => ({
+                                ...s,
+                                maxDim: Math.max(16, Number(e.target.value) || 16),
+                              }))
+                            }
+                            className="ie-input w-28"
+                          />
+                          <span className="text-xs text-gray-600 dark:text-gray-400">
+                            px
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {settings.format === "png" && (
+                    <div className="min-w-[220px]">
+                      <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        🖼️ โหมด PNG
+                      </div>
+                      <div className="space-y-1">
+                        {PNG_MODES.map((m) => (
+                          <label
+                            key={m.value}
+                            className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer"
+                          >
+                            <input
+                              type="radio"
+                              name="pngMode"
+                              checked={settings.pngMode === m.value}
+                              onChange={() =>
+                                setSettings((s) => ({
+                                  ...s,
+                                  pngMode: m.value,
+                                }))
+                              }
+                            />
+                            <span>
+                              {m.label}
+                              <span className="block text-[10px] text-gray-500 dark:text-gray-400">
+                                {m.hint}
+                              </span>
+                            </span>
+                          </label>
+                        ))}
+                        {settings.pngMode === "target" && (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min={10}
+                              className="ie-input w-28"
+                              value={settings.targetKB}
+                              onChange={(e) =>
+                                setSettings((s) => ({
+                                  ...s,
+                                  targetKB: Math.max(
+                                    10,
+                                    Number(e.target.value) || 10
+                                  ),
+                                }))
+                              }
+                            />
+                            <span className="text-xs text-gray-600 dark:text-gray-400">
+                              KB
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Results list */}
+            <div className="ie-groupbox flex-1 overflow-hidden flex flex-col min-h-0">
               <span className="ie-groupbox-title">
                 📁 รูปภาพ ({photos.length})
               </span>
+              {donePhotos.length > 0 && (
+                <div className="px-2 py-1 text-xs border-b border-gray-200 dark:border-gray-700">
+                  ประหยัดแล้ว:{" "}
+                  <span className="text-green-600 dark:text-green-500 font-medium">
+                    {savingsPct}%
+                  </span>{" "}
+                  ({formatSize(totalOriginal)} → {formatSize(totalResult)})
+                </div>
+              )}
               <div className="ie-panel-inset flex-1 overflow-auto p-2 ie-scrollbar">
-                {photos.length > 0 ? (
-                  photos.map((photo) => (
+                {photos.map((photo) => {
+                  const staleRow =
+                    photo.status === "done" &&
+                    photo.resultKey !== settingsKey;
+                  return (
                     <div
                       key={photo.id}
                       className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
@@ -538,7 +841,14 @@ export default function ReducePhotoSizeView() {
                         </div>
                         <div className="text-[10px] text-gray-500 dark:text-gray-400">
                           {formatSize(photo.originalSize)}
-                          {sizeLabel(photo)}
+                          {staleRow ? (
+                            <span className="text-xs text-gray-500">
+                              {" "}
+                              ⏳ กำลังคำนวณ…
+                            </span>
+                          ) : (
+                            sizeLabel(photo)
+                          )}
                         </div>
                         {photo.status === "error" && (
                           <div className="text-[10px] text-red-500">
@@ -550,7 +860,7 @@ export default function ReducePhotoSizeView() {
                         {photo.status === "processing" && (
                           <span className="text-xs">⏳</span>
                         )}
-                        {photo.status === "done" && (
+                        {photo.status === "done" && !staleRow && (
                           <button
                             className="ie-button ie-button-sm"
                             onClick={() => downloadPhoto(photo)}
@@ -570,235 +880,21 @@ export default function ReducePhotoSizeView() {
                         ✕
                       </button>
                     </div>
-                  ))
-                ) : (
-                  <div className="h-full flex flex-col items-center justify-center gap-2 text-gray-500 dark:text-gray-400">
-                    <div className="text-4xl">📉</div>
-                    <div className="text-xs">เลือกภาพเพื่อเริ่มต้น</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right Panel - Settings */}
-          <div className="w-72 flex flex-col gap-2 overflow-y-auto ie-scrollbar">
-            <div className="ie-groupbox">
-              <span className="ie-groupbox-title">🎯 รูปแบบผลลัพธ์</span>
-              <div className="p-2 -mt-2">
-                {formatBtn("jpeg", "🖼️")}
-                {formatBtn("png", "✨")}
-                {formatBtn("webp", "🌐")}
-                <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
-                  PNG บีบอัด lossy ได้ด้วย palette สี (เลือกโหมดด้านล่าง)
-                </div>
+                  );
+                })}
               </div>
             </div>
 
-            {settings.format === "png" && (
-              <div className="ie-groupbox">
-                <span className="ie-groupbox-title">🖼️ โหมด PNG</span>
-                <div className="p-2 -mt-2 space-y-2">
-                  {PNG_MODES.map((m) => (
-                    <label
-                      key={m.value}
-                      className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer"
-                    >
-                      <input
-                        type="radio"
-                        name="pngMode"
-                        checked={settings.pngMode === m.value}
-                        onChange={() =>
-                          setSettings((s) => ({ ...s, pngMode: m.value }))
-                        }
-                      />
-                      <span>
-                        {m.label}
-                        <span className="block text-[10px] text-gray-500 dark:text-gray-400">
-                          {m.hint}
-                        </span>
-                      </span>
-                    </label>
-                  ))}
-                  {settings.pngMode === "target" && (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min={10}
-                        className="ie-input"
-                        value={settings.targetKB}
-                        onChange={(e) =>
-                          setSettings((s) => ({
-                            ...s,
-                            targetKB: Math.max(10, Number(e.target.value) || 10),
-                          }))
-                        }
-                      />
-                      <span className="text-xs text-gray-600 dark:text-gray-400">
-                        KB
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div className="ie-groupbox">
-              <span className="ie-groupbox-title">⚙️ คุณภาพ</span>
-              <div className="p-2 -mt-2">
-                <div className="text-xs text-gray-700 dark:text-gray-300 mb-1">
-                  {settings.format === "png" && settings.pngMode === "palette"
-                    ? `ระดับสี (Palette): ${paletteFor(settings.quality)} สี`
-                    : `คุณภาพ: ${settings.quality}`}
-                </div>
-                <input
-                  type="range"
-                  min={1}
-                  max={100}
-                  value={settings.quality}
-                  onChange={(e) =>
-                    setSettings((s) => ({
-                      ...s,
-                      quality: Number(e.target.value),
-                    }))
-                  }
-                  className="w-full"
-                  disabled={
-                    settings.format === "png" && settings.pngMode !== "palette"
-                  }
-                />
-              </div>
+            {/* Status Bar */}
+            <div className="ie-statusbar mt-2">
+              <span className="text-xs">
+                รูปภาพ: {photos.length} | ประมวลผลแล้ว: {donePhotos.length} |
+                ประหยัด: {savingsPct}%
+                {usedOriginalCount > 0 && ` | ใช้ต้นฉบับ: ${usedOriginalCount}`}
+              </span>
             </div>
-
-            <div className="ie-groupbox">
-              <span className="ie-groupbox-title">📐 ขนาดภาพ</span>
-              <div className="p-2 -mt-2 space-y-2">
-                <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="resizeMode"
-                    checked={settings.resizeMode === "percent"}
-                    onChange={() =>
-                      setSettings((s) => ({ ...s, resizeMode: "percent" }))
-                    }
-                  />
-                  โหมด % (เทียบขนาดเดิม)
-                </label>
-                <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="resizeMode"
-                    checked={settings.resizeMode === "maxdim"}
-                    onChange={() =>
-                      setSettings((s) => ({ ...s, resizeMode: "maxdim" }))
-                    }
-                  />
-                  โหมด Max Dimension
-                </label>
-
-                {settings.resizeMode === "percent" ? (
-                  <>
-                    <div className="text-xs text-gray-700 dark:text-gray-300">
-                      เปอร์เซ็นต์: {settings.percent}%
-                    </div>
-                    <input
-                      type="range"
-                      min={1}
-                      max={100}
-                      value={settings.percent}
-                      onChange={(e) =>
-                        setSettings((s) => ({
-                          ...s,
-                          percent: Number(e.target.value),
-                        }))
-                      }
-                      className="w-full"
-                    />
-                    <div className="flex gap-1">
-                      {[25, 50, 75, 100].map((p) => (
-                        <button
-                          key={p}
-                          className="ie-button ie-button-sm"
-                          onClick={() =>
-                            setSettings((s) => ({ ...s, percent: p }))
-                          }
-                        >
-                          {p}%
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-xs text-gray-700 dark:text-gray-300">
-                      ความกว้าง/สูงสูงสุด (px)
-                    </div>
-                    <input
-                      type="number"
-                      min={16}
-                      value={settings.maxDim}
-                      onChange={(e) =>
-                        setSettings((s) => ({
-                          ...s,
-                          maxDim: Math.max(16, Number(e.target.value) || 16),
-                        }))
-                      }
-                      className="ie-input w-full"
-                    />
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="ie-groupbox">
-              <span className="ie-groupbox-title">ℹ️ สรุป</span>
-              <div className="p-2 -mt-2 text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                <div>ประมวลผลแล้ว: {donePhotos.length} / {photos.length}</div>
-                {usedOriginalCount > 0 && (
-                  <div>ใช้ต้นฉบับ: {usedOriginalCount} ไฟล์</div>
-                )}
-                {donePhotos.length > 0 && (
-                  <>
-                    <div>ขนาดรวมเดิม: {formatSize(totalOriginal)}</div>
-                    <div>ขนาดรวมใหม่: {formatSize(totalResult)}</div>
-                    <div className="text-green-600 dark:text-green-500 font-medium">
-                      ลดลงเฉลี่ย: {savingsPct}%
-                    </div>
-                  </>
-                )}
-                <div className="text-[10px] text-gray-500 dark:text-gray-400 pt-1">
-                  JPEG: พื้นหลังโปร่งใสจะกลายเป็นสีขาว
-                </div>
-              </div>
-            </div>
-
-            {isProcessing && (
-              <div className="ie-groupbox">
-                <span className="ie-groupbox-title">⏳ ความคืบหน้า</span>
-                <div className="p-2 -mt-2">
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded h-4 overflow-hidden">
-                    <div
-                      className="bg-blue-500 h-full transition-all duration-300"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <div className="text-xs text-center mt-1 text-gray-700 dark:text-gray-300">
-                    {progress}%
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Status Bar */}
-        <div className="ie-statusbar mt-2">
-          <span className="text-xs">
-            {photos.length > 0
-              ? `รูปภาพ: ${photos.length} | ประมวลผลแล้ว: ${donePhotos.length} | ประหยัด: ${savingsPct}%`
-              : "ยังไม่มีรูปภาพ"}
-          </span>
-        </div>
+          </>
+        )}
 
         {/* Error Modal */}
         {error && (
