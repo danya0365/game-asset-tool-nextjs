@@ -1,4 +1,5 @@
 "use client";
+import { cn } from "@/src/presentation/lib/cn";
 
 import { ThemeToggle } from "@/src/presentation/components/atoms/ThemeToggle";
 import { ComingSoonModal } from "@/src/presentation/components/molecules/ComingSoonModal";
@@ -196,9 +197,7 @@ export function MainLayout({
         {menuItems.map((menu) => (
           <div key={menu.label} className="ie-menu-item">
             <button
-              className={`ie-menu-trigger ${
-                activeMenu === menu.label ? "active" : ""
-              }`}
+              className={cn("ie-menu-trigger", activeMenu === menu.label ? "active" : "")}
               onClick={() => handleMenuClick(menu.label)}
               onBlur={handleMenuBlur}
             >
@@ -212,9 +211,7 @@ export function MainLayout({
                   ) : (
                     <button
                       key={idx}
-                      className={`ie-menu-dropdown-item ${
-                        item.disabled ? "disabled" : ""
-                      }`}
+                      className={cn("ie-menu-dropdown-item", item.disabled ? "disabled" : "")}
                       disabled={item.disabled}
                       onClick={() => handleMenuItemClick(item.label)}
                     >

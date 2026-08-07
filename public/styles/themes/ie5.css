@@ -1,0 +1,161 @@
+/* ============================================
+   Theme: ie5 — Internet Explorer 5 บน Windows 98
+   ค่าจริงของ token ทั้งหมดอยู่ที่นี่ (ชั้น palette)
+   ผูกกับ :root ด้วย เพื่อให้มีสีถูกต้องแม้ JS ยังไม่ทำงาน
+   ============================================ */
+
+:root,
+[data-theme="ie5"] {
+  /* ── Fonts (ค่าจริงมาจาก next/font ใน app/layout.tsx) ── */
+  --font-body: var(--font-noto-thai), Tahoma, "MS Sans Serif", "Segoe UI",
+    sans-serif;
+  --font-heading-family: var(--font-noto-thai), Tahoma, "MS Sans Serif",
+    "Segoe UI", sans-serif;
+  --font-mono-family: ui-monospace, "SFMono-Regular", Menlo, Consolas,
+    "Courier New", monospace;
+
+  /* ── Surface ─────────────────────────────────────────── */
+  --background: #c0c0c0; /* หน้าต่าง/พื้นโปรแกรม (เทา Win98) */
+  --foreground: #000000;
+  --card: #ffffff; /* พื้นที่เนื้อหาแบบจม (content/listview) */
+  --card-foreground: #000000;
+  --muted: #808080; /* ข้อความรอง/disabled */
+  --muted-surface: #d4d4d4; /* พื้นจาง/hover */
+  --border: #808080;
+  --ring: #000000;
+
+  /* ── Win98 chrome + 3D bevel ─────────────────────────── */
+  --chrome: #c0c0c0; /* toolbar / menubar / panel */
+  --chrome-hover: #d4d4d4;
+  --chrome-active: #b0b0b0;
+  --chrome-pressed: #a0a0a0;
+  --bevel-light: #ffffff; /* ขอบสว่าง (บน-ซ้าย) */
+  --bevel-shadow: #808080; /* ขอบเงา (ล่าง-ขวา) */
+  --inset: #ffffff; /* input / treeview / พื้นจม */
+  --tooltip: #ffffcc;
+  --tooltip-foreground: #000000;
+
+  --selection: #0a246a; /* แถบไฮไลต์ (เมนู/listview/titlebar) */
+  --selection-foreground: #ffffff;
+
+  /* ── Brand ramp — Win98 navy ─────────────────────────── */
+  --brand-50: #eaeff8;
+  --brand-100: #d5dff1;
+  --brand-200: #a6caf0; /* ปลายไล่สีของ titlebar */
+  --brand-300: #7ba7dd;
+  --brand-400: #4a7fc1;
+  --brand-500: #1e56a0;
+  --brand-600: #14417c;
+  --brand-700: #0a246a; /* navy ของ selection */
+  --brand-800: #071a4d;
+  --brand-900: #041133;
+  --on-brand: #ffffff;
+
+  /* ── Accent — Win98 teal (สีพื้น desktop คลาสสิก) ────── */
+  --accent-100: #ccecec;
+  --accent-400: #339999;
+  --accent-500: #008080;
+  --accent-600: #006666;
+
+  /* ── Status ──────────────────────────────────────────── */
+  --success: #15803d;
+  --success-surface: #dcfce7;
+  --warning: #b45309;
+  --warning-surface: #fef3c7;
+  --error: #b91c1c;
+  --error-surface: #fee2e2;
+
+  /* ── Canvas (พื้นหลังพื้นที่ทำงานของ editor) ──────────────
+     ตั้งใจให้เข้มทั้งสองโหมด — asset ส่วนใหญ่เป็นภาพสว่าง/โปร่งใส ต้องมีพื้นเข้มถึงจะเห็นขอบ */
+  --canvas: #1a1a2e;
+  --canvas-grid: #3a3a4e; /* เส้น grid/checkerboard */
+  --overlay: rgb(0 0 0 / 0.5); /* ฉากหลัง dialog */
+
+  /* บล็อกผลลัพธ์แบบจอเทอร์มินัล — คงหน้าตาเดิม (จอดำตัวเขียว) ทั้งสองโหมด */
+  --terminal: #0c1116;
+  --terminal-foreground: #4ade80;
+
+  /* ── Radius — IE5 มุมเหลี่ยมทั้งหมด ──────────────────── */
+  --sk-radius-sm: 0px;
+  --sk-radius-md: 0px;
+  --sk-radius-lg: 0px;
+  --sk-radius-xl: 0px;
+  --sk-radius-pill: 9999px;
+
+  /* ── Shadow — เงาแข็งแบบ Win98 (ไม่เบลอ) ─────────────── */
+  --sk-shadow-xs: 1px 1px 0 rgb(0 0 0 / 0.2);
+  --sk-shadow-sm: 2px 2px 0 rgb(0 0 0 / 0.3);
+  --sk-shadow-md: 4px 4px 0 rgb(0 0 0 / 0.3);
+  --sk-shadow-btn: inset 1px 1px 2px rgb(0 0 0 / 0.3);
+}
+
+/* ============================================
+   Dark — "Win98 ตอนกลางคืน"
+   พลิก ramp: brand-50..300 = พื้นเข้ม · brand-500..900 = สีอ่อน/ตัวอักษร
+   ============================================ */
+
+:root.dark,
+[data-theme="ie5"].dark {
+  /* ── Surface ─────────────────────────────────────────── */
+  --background: #2d2d2d;
+  --foreground: #e0e0e0;
+  --card: #1a1a2e;
+  --card-foreground: #e0e0e0;
+  --muted: #9a9a9a;
+  --muted-surface: #4a4a4a;
+  --border: #1a1a1a;
+  --ring: #e0e0e0;
+
+  /* ── chrome + bevel (กลับด้านความสว่าง) ──────────────── */
+  --chrome: #3d3d3d;
+  --chrome-hover: #4a4a4a;
+  --chrome-active: #2d2d2d;
+  --chrome-pressed: #2a2a4a;
+  --bevel-light: #5a5a5a;
+  --bevel-shadow: #1a1a1a;
+  --inset: #2d2d2d;
+  --tooltip: #3d3d2a;
+  --tooltip-foreground: #e0e0e0;
+
+  /* selection ยังต้องเป็นพื้นเข้ม + ตัวอักษรขาว → ไม่พลิก */
+  --selection: #4a5568;
+  --selection-foreground: #ffffff;
+
+  /* ── Brand ramp พลิกหัวกลับ ──────────────────────────── */
+  --brand-50: #16213e; /* พื้นเข้ม */
+  --brand-100: #1a1a2e;
+  --brand-200: #2a2a4a;
+  --brand-300: #3d4a6a;
+  --brand-400: #4a5568;
+  --brand-500: #7ba7dd; /* สีอ่อน/ตัวอักษร */
+  --brand-600: #a6caf0;
+  --brand-700: #c5dcf5;
+  --brand-800: #dce9fa;
+  --brand-900: #eef5fe;
+  /* brand-500 กลายเป็นสีอ่อน → ตัวอักษรบนพื้นนั้นต้องเข้ม */
+  --on-brand: #0a1628;
+
+  /* ── Accent ──────────────────────────────────────────── */
+  --accent-100: #0a2e2e;
+  --accent-400: #4db8b8;
+  --accent-500: #5ecccc;
+  --accent-600: #8ae0e0;
+
+  /* ── Status — override สีให้อ่านออกบนพื้นเข้ม + พื้น surface ── */
+  --success: #4ade80;
+  --success-surface: #052e16;
+  --warning: #fbbf24;
+  --warning-surface: #451a03;
+  --error: #f87171;
+  --error-surface: #450a0a;
+
+  /* ── Canvas ──────────────────────────────────────────── */
+  /* canvas ไม่ override — เข้มอยู่แล้วทั้งสองโหมด (เช่นเดียวกับ terminal) */
+  --overlay: rgb(0 0 0 / 0.65);
+
+  /* ── Shadow เข้มขึ้นให้เห็นบนพื้นมืด ─────────────────── */
+  --sk-shadow-xs: 1px 1px 0 rgb(0 0 0 / 0.4);
+  --sk-shadow-sm: 2px 2px 0 rgb(0 0 0 / 0.5);
+  --sk-shadow-md: 4px 4px 0 rgb(0 0 0 / 0.5);
+  --sk-shadow-btn: inset 1px 1px 2px rgb(0 0 0 / 0.5);
+}

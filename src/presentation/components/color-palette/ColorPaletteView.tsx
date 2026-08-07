@@ -1,4 +1,5 @@
 "use client";
+import { cn } from "@/src/presentation/lib/cn";
 
 import { MainLayout } from "@/src/presentation/components/templates/MainLayout";
 import { useColorPalette } from "@/src/presentation/hooks/useColorPalette";
@@ -73,17 +74,18 @@ export function ColorPaletteView() {
             <div className="flex gap-2 mb-2 -mt-2">
               <div
                 className="w-16 h-16 ie-panel-inset"
+                // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                 style={{ backgroundColor: currentColor.hex }}
               />
               <div className="flex-1 space-y-1">
-                <div className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                <div className="text-xs font-bold text-foreground">
                   {currentColor.hex.toUpperCase()}
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-muted">
                   RGB: {currentColor.rgb.r}, {currentColor.rgb.g},{" "}
                   {currentColor.rgb.b}
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-muted">
                   HSV: {currentColor.hsv.h}°, {currentColor.hsv.s}%,{" "}
                   {currentColor.hsv.v}%
                 </div>
@@ -92,7 +94,7 @@ export function ColorPaletteView() {
 
             {/* HEX Input */}
             <div className="mb-2">
-              <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1">
+              <label className="text-xs text-foreground block mb-1">
                 HEX
               </label>
               <div className="flex gap-1">
@@ -117,7 +119,7 @@ export function ColorPaletteView() {
             {/* RGB Sliders */}
             <div className="space-y-2 mb-2">
               <div>
-                <label className="text-xs text-gray-700 dark:text-gray-300 flex justify-between">
+                <label className="text-xs text-foreground flex justify-between">
                   <span>R</span>
                   <span>{currentColor.rgb.r}</span>
                 </label>
@@ -133,13 +135,14 @@ export function ColorPaletteView() {
                     })
                   }
                   className="w-full"
+                  // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                   style={{
                     accentColor: `rgb(${currentColor.rgb.r}, 0, 0)`,
                   }}
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-700 dark:text-gray-300 flex justify-between">
+                <label className="text-xs text-foreground flex justify-between">
                   <span>G</span>
                   <span>{currentColor.rgb.g}</span>
                 </label>
@@ -155,13 +158,14 @@ export function ColorPaletteView() {
                     })
                   }
                   className="w-full"
+                  // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                   style={{
                     accentColor: `rgb(0, ${currentColor.rgb.g}, 0)`,
                   }}
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-700 dark:text-gray-300 flex justify-between">
+                <label className="text-xs text-foreground flex justify-between">
                   <span>B</span>
                   <span>{currentColor.rgb.b}</span>
                 </label>
@@ -177,6 +181,7 @@ export function ColorPaletteView() {
                     })
                   }
                   className="w-full"
+                  // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                   style={{
                     accentColor: `rgb(0, 0, ${currentColor.rgb.b})`,
                   }}
@@ -187,7 +192,7 @@ export function ColorPaletteView() {
             {/* HSV Sliders */}
             <div className="space-y-2 mb-2">
               <div>
-                <label className="text-xs text-gray-700 dark:text-gray-300 flex justify-between">
+                <label className="text-xs text-foreground flex justify-between">
                   <span>Hue</span>
                   <span>{currentColor.hsv.h}°</span>
                 </label>
@@ -202,15 +207,11 @@ export function ColorPaletteView() {
                       h: parseInt(e.target.value),
                     })
                   }
-                  className="w-full"
-                  style={{
-                    background:
-                      "linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)",
-                  }}
+                  className="w-full hue-rail"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-700 dark:text-gray-300 flex justify-between">
+                <label className="text-xs text-foreground flex justify-between">
                   <span>Saturation</span>
                   <span>{currentColor.hsv.s}%</span>
                 </label>
@@ -229,7 +230,7 @@ export function ColorPaletteView() {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-700 dark:text-gray-300 flex justify-between">
+                <label className="text-xs text-foreground flex justify-between">
                   <span>Value</span>
                   <span>{currentColor.hsv.v}%</span>
                 </label>
@@ -269,7 +270,7 @@ export function ColorPaletteView() {
             {/* Palette Grid */}
             <div className="ie-panel-inset flex-1 overflow-auto ie-scrollbar p-2 -mt-2">
               {palette.colors.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-gray-500">
+                <div className="h-full flex items-center justify-center text-muted">
                   <div className="text-center">
                     <div className="text-4xl mb-2">🎨</div>
                     <div className="text-xs">
@@ -282,11 +283,8 @@ export function ColorPaletteView() {
                   {palette.colors.map((color) => (
                     <div
                       key={color.id}
-                      className={`aspect-square ie-panel cursor-pointer transition-transform hover:scale-110 ${
-                        selectedColorId === color.id
-                          ? "ring-2 ring-blue-500 ring-offset-1"
-                          : ""
-                      }`}
+                      className={cn("aspect-square ie-panel cursor-pointer transition-transform hover:scale-110", selectedColorId === color.id ? "ring-2 ring-brand-500 ring-offset-1" : "")}
+                      // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                       style={{ backgroundColor: color.hex }}
                       onClick={() => selectColor(color.id)}
                       title={`${color.hex}${
@@ -352,6 +350,7 @@ export function ColorPaletteView() {
                           <div
                             key={i}
                             className="w-3 h-3"
+                            // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                             style={{ backgroundColor: hex }}
                           />
                         ))}
@@ -371,15 +370,16 @@ export function ColorPaletteView() {
               <div className="space-y-2 -mt-2">
                 <div
                   className="w-full h-12 ie-panel-inset"
+                  // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                   style={{ backgroundColor: currentColor.hex }}
                 />
                 <div className="text-xs space-y-1">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">HEX:</span>
+                    <span className="text-muted">HEX:</span>
                     <span className="font-mono">{currentColor.hex}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">RGB:</span>
+                    <span className="text-muted">RGB:</span>
                     <span className="font-mono">
                       {currentColor.rgb.r}, {currentColor.rgb.g},{" "}
                       {currentColor.rgb.b}
@@ -426,7 +426,7 @@ export function ColorPaletteView() {
 
           {/* Info */}
           <div className="ie-panel-inset p-2 mt-1">
-            <div className="text-xs text-gray-600 dark:text-gray-400">
+            <div className="text-xs text-muted">
               <strong>Tips:</strong>
               <ul className="mt-1 space-y-0.5 list-disc list-inside">
                 <li>Click color to select</li>
@@ -459,7 +459,7 @@ export function ColorPaletteView() {
               <div className="ie-dialog-body">
                 <div className="flex items-start gap-3">
                   <div className="text-3xl">❌</div>
-                  <div className="text-xs text-gray-700 dark:text-gray-300">
+                  <div className="text-xs text-foreground">
                     {error}
                   </div>
                 </div>

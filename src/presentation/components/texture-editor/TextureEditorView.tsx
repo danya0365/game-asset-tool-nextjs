@@ -1,4 +1,5 @@
 "use client";
+import { cn } from "@/src/presentation/lib/cn";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { MainLayout } from "../templates/MainLayout";
@@ -619,7 +620,7 @@ export default function TextureEditorView() {
           </button>
 
           <button
-            className="ie-button bg-green-600 text-white font-bold"
+            className="ie-button bg-success text-on-brand font-bold"
             onClick={exportImage}
             disabled={!originalImage}
           >
@@ -645,15 +646,12 @@ export default function TextureEditorView() {
         <div className="flex flex-1 gap-2 overflow-hidden">
           {/* Left Panel - Canvas */}
           <div
-            className="flex-1 ie-panel-inset overflow-auto flex items-center justify-center"
-            style={{
-              background:
-                "repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%) 50% / 16px 16px",
-            }}
+            className="flex-1 ie-panel-inset overflow-auto flex items-center justify-center canvas-checker"
           >
             {originalImage ? (
               <canvas
                 ref={canvasRef}
+                // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                 style={{
                   transform: `scale(${zoom})`,
                   transformOrigin: "center",
@@ -661,7 +659,7 @@ export default function TextureEditorView() {
                 }}
               />
             ) : (
-              <div className="text-center text-gray-500">
+              <div className="text-center text-muted">
                 <div className="text-4xl mb-2">🖼️</div>
                 <p>Load an image to begin</p>
               </div>
@@ -676,9 +674,7 @@ export default function TextureEditorView() {
                 (tab) => (
                   <button
                     key={tab}
-                    className={`ie-button flex-1 text-xs ${
-                      activeTab === tab ? "ie-button-active" : ""
-                    }`}
+                    className={cn("ie-button flex-1 text-xs", activeTab === tab ? "ie-button-active" : "")}
                     onClick={() => setActiveTab(tab)}
                   >
                     {tab === "filters" && "🎨 Filters"}
@@ -709,9 +705,7 @@ export default function TextureEditorView() {
                     ).map((f) => (
                       <button
                         key={f}
-                        className={`ie-button text-xs ${
-                          filter === f ? "ie-button-active bg-blue-100" : ""
-                        }`}
+                        className={cn("ie-button text-xs", filter === f ? "ie-button-active bg-brand-100" : "")}
                         onClick={() => setFilter(f)}
                       >
                         {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -926,19 +920,15 @@ export default function TextureEditorView() {
                 <div className="ie-groupbox flex-1">
                   <span className="ie-groupbox-title">👁️ 9-Slice Preview</span>
                   <div
-                    className="ie-panel-inset p-2 flex items-center justify-center"
-                    style={{
-                      background:
-                        "repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%) 50% / 8px 8px",
-                    }}
+                    className="ie-panel-inset p-2 flex items-center justify-center canvas-checker"
                   >
                     {originalImage ? (
                       <canvas
                         ref={nineSliceCanvasRef}
-                        style={{ imageRendering: "pixelated" }}
+                        className="pixelated"
                       />
                     ) : (
-                      <span className="text-gray-400 text-xs">
+                      <span className="text-muted text-xs">
                         Load image first
                       </span>
                     )}
@@ -1131,16 +1121,13 @@ export default function TextureEditorView() {
                   <div className="ie-groupbox flex-1">
                     <span className="ie-groupbox-title">Preview</span>
                     <div
-                      className="ie-panel-inset p-2 overflow-auto"
-                      style={{ maxHeight: 300 }}
+                      className="ie-panel-inset p-2 overflow-auto max-h-[300px]"
                     >
                       <div
-                        className="bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%228%22%20height%3D%228%22%3E%3Crect%20width%3D%224%22%20height%3D%224%22%20fill%3D%22%23444%22%2F%3E%3Crect%20x%3D%224%22%20y%3D%224%22%20width%3D%224%22%20height%3D%224%22%20fill%3D%22%23444%22%2F%3E%3C%2Fsvg%3E')]"
+                        className="canvas-checker grid gap-0 w-fit"
+                        // eslint-disable-next-line react/forbid-dom-props -- จำนวนคอลัมน์คำนวณจาก state ตอน runtime
                         style={{
-                          display: "grid",
                           gridTemplateColumns: `repeat(${seamlessTileCount}, 1fr)`,
-                          gap: 0,
-                          width: "fit-content",
                         }}
                       >
                         {Array.from({
@@ -1151,30 +1138,31 @@ export default function TextureEditorView() {
                             ref={i === 0 ? seamlessCanvasRef : undefined}
                             width={originalImage.width}
                             height={originalImage.height}
+                            className="pixelated"
+                            // eslint-disable-next-line react/forbid-dom-props -- ขนาดคำนวณจากภาพที่ผู้ใช้โหลด
                             style={{
                               width: Math.min(60, originalImage.width),
                               height: Math.min(60, originalImage.height),
-                              imageRendering: "pixelated",
                             }}
                           />
                         ))}
                       </div>
                     </div>
-                    <div className="text-[10px] text-gray-500 p-1 text-center">
+                    <div className="text-[10px] text-muted p-1 text-center">
                       Drag edges to check seams
                     </div>
                   </div>
                 )}
 
                 {!seamlessPreviewEnabled && originalImage && (
-                  <div className="ie-panel-inset p-4 text-center text-xs text-gray-500">
+                  <div className="ie-panel-inset p-4 text-center text-xs text-muted">
                     <div className="text-2xl mb-2">🔄</div>
                     <p>Enable tiled preview to check texture seamlessness</p>
                   </div>
                 )}
 
                 {!originalImage && (
-                  <div className="ie-panel-inset p-4 text-center text-xs text-gray-500">
+                  <div className="ie-panel-inset p-4 text-center text-xs text-muted">
                     <div className="text-2xl mb-2">🖼️</div>
                     <p>Load an image first</p>
                   </div>

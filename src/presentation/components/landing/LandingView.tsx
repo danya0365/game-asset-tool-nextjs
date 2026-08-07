@@ -146,13 +146,13 @@ export function LandingView() {
           {/* Hero Section */}
           <div className="ie-panel mb-2 md:mb-4">
             <div className="ie-panel-inset p-3 md:p-6 text-center">
-              <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">
+              <h1 className="text-2xl font-bold mb-2 text-foreground">
                 🎮 Game Asset Tool
               </h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              <p className="text-sm text-muted mb-4">
                 เครื่องมือครบวงจรสำหรับสร้างและจัดการ Game Assets
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-500">
+              <p className="text-xs text-muted">
                 Texture • Tilemap • Tileset • Spritesheet • Animation
               </p>
             </div>
@@ -176,7 +176,7 @@ export function LandingView() {
                           <div className="font-medium text-xs">
                             {action.label}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-xs text-muted">
                             {action.description}
                           </div>
                         </div>
@@ -209,14 +209,14 @@ export function LandingView() {
                         >
                           <span>📁</span>
                           <span className="truncate">{project.name}</span>
-                          <span className="text-[10px] text-gray-500 ml-auto">
+                          <span className="text-[10px] text-muted ml-auto">
                             {new Date(project.updatedAt).toLocaleDateString()}
                           </span>
                         </button>
                       ))
                     ) : (
                       <>
-                        <div className="text-xs text-gray-500 text-center py-2">
+                        <div className="text-xs text-muted text-center py-2">
                           No recent projects
                         </div>
                         <button
@@ -251,27 +251,27 @@ export function LandingView() {
                         <Link
                           key={feature.title}
                           href={feature.href}
-                          className="ie-panel-inset p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors block"
+                          className="ie-panel-inset p-3 text-left hover:bg-muted-surface transition-colors block"
                         >
                           <div className="text-2xl mb-1">{feature.icon}</div>
-                          <div className="font-medium text-xs mb-1 text-gray-900 dark:text-gray-100">
+                          <div className="font-medium text-xs mb-1 text-foreground">
                             {feature.title}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                          <div className="text-xs text-muted line-clamp-2">
                             {feature.description}
                           </div>
                         </Link>
                       ) : (
                         <button
                           key={feature.title}
-                          className="ie-panel-inset p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                          className="ie-panel-inset p-3 text-left hover:bg-muted-surface transition-colors"
                           onClick={() => showComingSoon(feature.title)}
                         >
                           <div className="text-2xl mb-1">{feature.icon}</div>
-                          <div className="font-medium text-xs mb-1 text-gray-900 dark:text-gray-100">
+                          <div className="font-medium text-xs mb-1 text-foreground">
                             {feature.title}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                          <div className="text-xs text-muted line-clamp-2">
                             {feature.description}
                           </div>
                         </button>
@@ -343,7 +343,7 @@ export function LandingView() {
                 <div className="ie-groupbox">
                   <span className="ie-groupbox-title">Getting Started</span>
                   <div className="ie-panel-inset p-2 md:p-3 -mt-2">
-                    <ol className="list-decimal list-inside text-xs space-y-1 text-gray-700 dark:text-gray-300">
+                    <ol className="list-decimal list-inside text-xs space-y-1 text-foreground">
                       <li>สร้าง Project ใหม่หรือเปิด Project ที่มีอยู่</li>
                       <li>Import รูปภาพหรือสร้าง Asset ใหม่ด้วย Editor</li>
                       <li>จัดการ Layers, Animation และ Properties</li>
@@ -371,7 +371,7 @@ export function LandingView() {
 
           {/* Footer Info */}
           <div className="ie-panel mt-2 md:mt-4">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-1 px-2 md:px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-1 px-2 md:px-3 py-2 text-xs text-muted">
               <span>Game Asset Tool v0.1.0</span>
               <span>Made with ❤️ for Game Developers</span>
               <span>© 2024</span>

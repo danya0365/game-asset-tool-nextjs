@@ -166,7 +166,7 @@ export default function ImageShuffleView() {
           </div>
 
           {/* Controls */}
-          <div className="flex flex-wrap items-center gap-4 p-4 bg-surface border border-border rounded-lg">
+          <div className="flex flex-wrap items-center gap-4 p-4 bg-card border border-border rounded-lg">
             <div>
               <input
                 ref={fileInputRef}
@@ -177,7 +177,7 @@ export default function ImageShuffleView() {
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="px-4 py-2 bg-info text-white rounded hover:bg-info-dark transition-colors"
+                className="px-4 py-2 bg-brand-500 text-on-brand rounded hover:bg-brand-600 transition-colors"
               >
                 📁 เลือกรูปภาพ
               </button>
@@ -188,7 +188,7 @@ export default function ImageShuffleView() {
               <select
                 value={gridSize}
                 onChange={(e) => setGridSize(Number(e.target.value))}
-                className="px-3 py-2 bg-input-bg border border-input-border rounded text-foreground"
+                className="px-3 py-2 bg-inset border border-border rounded text-foreground"
               >
                 <option value={2}>2×2</option>
                 <option value={3}>3×3</option>
@@ -203,7 +203,7 @@ export default function ImageShuffleView() {
             <button
               onClick={processShuffleImage}
               disabled={!originalImage || isProcessing}
-              className="px-4 py-2 bg-success text-white rounded hover:bg-success-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-success text-on-brand rounded hover:bg-success transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               🔀 Shuffle
             </button>
@@ -211,7 +211,7 @@ export default function ImageShuffleView() {
             {shuffledImageUrl && (
               <button
                 onClick={handleReshuffle}
-                className="px-4 py-2 bg-warning text-white rounded hover:bg-warning-dark transition-colors"
+                className="px-4 py-2 bg-warning text-on-brand rounded hover:bg-warning transition-colors"
               >
                 🔄 Re-shuffle
               </button>
@@ -221,18 +221,14 @@ export default function ImageShuffleView() {
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Original Image */}
-            <div className="p-4 bg-surface border border-border rounded-lg">
+            <div className="p-4 bg-card border border-border rounded-lg">
               <h2 className="text-lg font-semibold text-foreground mb-3">📷 รูปต้นฉบับ</h2>
-              <div className="min-h-[300px] flex items-center justify-center bg-muted-light dark:bg-muted-dark rounded border border-border-light">
+              <div className="min-h-[300px] flex items-center justify-center bg-muted-surface rounded border border-border">
                 {originalImage ? (
                   <img
                     src={originalImage.src}
                     alt="Original"
-                    style={{
-                      maxWidth: "100%",
-                      maxHeight: "400px",
-                      objectFit: "contain",
-                    }}
+                    className="max-w-full max-h-[400px] object-contain"
                   />
                 ) : (
                   <span className="text-muted">ยังไม่ได้เลือกรูปภาพ</span>
@@ -241,18 +237,14 @@ export default function ImageShuffleView() {
             </div>
 
             {/* Shuffled Image */}
-            <div className="p-4 bg-surface border border-border rounded-lg">
+            <div className="p-4 bg-card border border-border rounded-lg">
               <h2 className="text-lg font-semibold text-foreground mb-3">🔀 รูปที่ถูก Shuffle</h2>
-              <div className="min-h-[300px] flex items-center justify-center bg-muted-light dark:bg-muted-dark rounded border border-border-light">
+              <div className="min-h-[300px] flex items-center justify-center bg-muted-surface rounded border border-border">
                 {shuffledImageUrl ? (
                   <img
                     src={shuffledImageUrl}
                     alt="Shuffled"
-                    style={{
-                      maxWidth: "100%",
-                      maxHeight: "400px",
-                      objectFit: "contain",
-                    }}
+                    className="max-w-full max-h-[400px] object-contain"
                   />
                 ) : (
                   <span className="text-muted">
@@ -265,13 +257,13 @@ export default function ImageShuffleView() {
                 <div className="mt-3 flex gap-2">
                   <button
                     onClick={downloadShuffledImage}
-                    className="px-3 py-1.5 bg-info text-white text-sm rounded hover:bg-info-dark transition-colors"
+                    className="px-3 py-1.5 bg-brand-500 text-on-brand text-sm rounded hover:bg-brand-600 transition-colors"
                   >
                     💾 Download Shuffled Image
                   </button>
                   <button
                     onClick={downloadJsonData}
-                    className="px-3 py-1.5 bg-success text-white text-sm rounded hover:bg-success-dark transition-colors"
+                    className="px-3 py-1.5 bg-success text-on-brand text-sm rounded hover:bg-success transition-colors"
                   >
                     📄 Download JSON
                   </button>
@@ -282,12 +274,12 @@ export default function ImageShuffleView() {
 
           {/* CSS-based Reconstruction Display (prevents direct download) */}
           {shuffleData && shuffledImageUrl && (
-            <div className="p-4 bg-surface border border-border rounded-lg">
+            <div className="p-4 bg-card border border-border rounded-lg">
               <h2 className="text-lg font-semibold text-foreground mb-3">
                 ✨ CSS Block Reconstruction (แสดงรูปต้นฉบับจาก Shuffled Data)
               </h2>
               <p className="text-sm text-muted mb-4">
-                ใช้ CSS <code className="px-1 py-0.5 bg-muted-light dark:bg-muted-dark rounded">background-position</code> 
+                ใช้ CSS <code className="px-1 py-0.5 bg-muted-surface rounded">background-position</code> 
                 เพื่อเรียงบล็อกจาก shuffled image กลับเป็นรูปต้นฉบับ (ไม่สามารถดาวน์โหลดรูปต้นฉบับได้)
               </p>
               
@@ -311,6 +303,7 @@ export default function ImageShuffleView() {
                   return (
                     <div
                       className="border-2 border-dashed border-success rounded"
+                      // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                       style={{
                         width: actualDisplayWidth,
                         height: actualDisplayHeight,
@@ -333,6 +326,7 @@ export default function ImageShuffleView() {
                         return (
                           <div
                             key={originalIndex}
+                            // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                             style={{
                               width: displayBlockWidth,
                               height: displayBlockHeight,
@@ -353,9 +347,9 @@ export default function ImageShuffleView() {
 
           {/* JSON Data Preview */}
           {shuffleData && (
-            <div className="p-4 bg-surface border border-border rounded-lg">
+            <div className="p-4 bg-card border border-border rounded-lg">
               <h2 className="text-lg font-semibold text-foreground mb-3">📋 Shuffle Data (JSON)</h2>
-              <pre className="p-4 bg-gray-900 text-green-400 rounded overflow-x-auto text-sm">
+              <pre className="p-4 bg-terminal text-terminal-foreground rounded overflow-x-auto text-sm">
                 {JSON.stringify(shuffleData, null, 2)}
               </pre>
             </div>

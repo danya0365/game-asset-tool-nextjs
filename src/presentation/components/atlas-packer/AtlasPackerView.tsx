@@ -1,4 +1,5 @@
 "use client";
+import { cn } from "@/src/presentation/lib/cn";
 
 import {
   EXPORT_FORMATS,
@@ -407,9 +408,7 @@ export function AtlasPackerView() {
             {/* Drop Zone */}
             <div
               ref={dropZoneRef}
-              className={`ie-panel-inset p-2 mb-2 text-center cursor-pointer transition-colors ${
-                isDragging ? "bg-blue-100 dark:bg-blue-900" : ""
-              }`}
+              className={cn("ie-panel-inset p-2 mb-2 text-center cursor-pointer transition-colors", isDragging ? "bg-brand-100 " : "")}
               onClick={handleFileSelect}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -424,7 +423,7 @@ export function AtlasPackerView() {
                 onChange={handleFileChange}
               />
               <div className="text-2xl mb-1">📂</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">
+              <div className="text-xs text-muted">
                 Drop images here
                 <br />
                 or click to browse
@@ -434,7 +433,7 @@ export function AtlasPackerView() {
             {/* Sprites List */}
             <div className="ie-listview flex-1 overflow-auto ie-scrollbar -mt-2">
               {frames.length === 0 ? (
-                <div className="p-2 text-xs text-center text-gray-500">
+                <div className="p-2 text-xs text-center text-muted">
                   No sprites added yet
                 </div>
               ) : (
@@ -458,6 +457,7 @@ export function AtlasPackerView() {
                       {/* Thumbnail Preview */}
                       <div
                         className="w-8 h-8 shrink-0 ie-panel-inset flex items-center justify-center overflow-hidden"
+                        // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                         style={{
                           backgroundImage:
                             "url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%228%22 height=%228%22%3E%3Crect width=%224%22 height=%224%22 fill=%22%23ccc%22/%3E%3Crect x=%224%22 y=%224%22 width=%224%22 height=%224%22 fill=%22%23ccc%22/%3E%3C/svg%3E')",
@@ -468,6 +468,7 @@ export function AtlasPackerView() {
                             src={frame.image.src}
                             alt={frame.name}
                             className="max-w-full max-h-full object-contain"
+                            // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                             style={{ imageRendering: "pixelated" }}
                           />
                         )}
@@ -475,7 +476,7 @@ export function AtlasPackerView() {
                       <span className="truncate text-xs">{frame.name}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-muted">
                         {frame.width}x{frame.height}
                         {frame.trimmed && " ✂️"}
                       </span>
@@ -553,11 +554,8 @@ export function AtlasPackerView() {
             <div className="space-y-2 -mt-2">
               {/* Animation Canvas - Click to enlarge */}
               <div
-                className={`ie-panel-inset h-32 flex items-center justify-center overflow-hidden ${
-                  frames.length > 0
-                    ? "cursor-pointer hover:ring-2 hover:ring-blue-400"
-                    : ""
-                }`}
+                className={cn("ie-panel-inset h-32 flex items-center justify-center overflow-hidden", frames.length > 0 ? "cursor-pointer hover:ring-2 hover:ring-brand-400" : "")}
+                // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                 style={{
                   backgroundImage:
                     "url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%2210%22%3E%3Crect width=%225%22 height=%225%22 fill=%22%23ccc%22/%3E%3Crect x=%225%22 y=%225%22 width=%225%22 height=%225%22 fill=%22%23ccc%22/%3E%3C/svg%3E')",
@@ -571,10 +569,11 @@ export function AtlasPackerView() {
                     src={frames[currentAnimFrame].image!.src}
                     alt={frames[currentAnimFrame].name}
                     className="max-w-full max-h-full object-contain"
+                    // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                     style={{ imageRendering: "pixelated" }}
                   />
                 ) : (
-                  <div className="text-xs text-gray-500 text-center">
+                  <div className="text-xs text-muted text-center">
                     <div className="text-2xl mb-1">🎬</div>
                     Add sprites to preview
                   </div>
@@ -582,7 +581,7 @@ export function AtlasPackerView() {
               </div>
 
               {/* Frame Counter */}
-              <div className="text-center text-xs text-gray-600 dark:text-gray-400">
+              <div className="text-center text-xs text-muted">
                 Frame: {frames.length > 0 ? currentAnimFrame + 1 : 0} /{" "}
                 {frames.length}
               </div>
@@ -617,7 +616,7 @@ export function AtlasPackerView() {
 
               {/* FPS Control */}
               <div>
-                <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1">
+                <label className="text-xs text-foreground block mb-1">
                   Speed: {animFps} FPS
                 </label>
                 <input
@@ -628,7 +627,7 @@ export function AtlasPackerView() {
                   onChange={(e) => setAnimFps(parseInt(e.target.value))}
                   className="w-full"
                 />
-                <div className="flex justify-between text-xs text-gray-500">
+                <div className="flex justify-between text-xs text-muted">
                   <span>1</span>
                   <span>30</span>
                   <span>60</span>
@@ -645,7 +644,7 @@ export function AtlasPackerView() {
               <span className="ie-groupbox-title !mb-0 shrink-0">
                 Preview
                 {packedAtlas && (
-                  <span className="text-gray-500 ml-1 text-xs">
+                  <span className="text-muted ml-1 text-xs">
                     {packedAtlas.width}x{packedAtlas.height}
                   </span>
                 )}
@@ -660,7 +659,7 @@ export function AtlasPackerView() {
                   >
                     -
                   </button>
-                  <span className="w-10 text-center text-gray-600 dark:text-gray-300 text-[10px]">
+                  <span className="w-10 text-center text-muted text-[10px]">
                     {Math.round(previewZoom * 100)}%
                   </span>
                   <button
@@ -690,17 +689,20 @@ export function AtlasPackerView() {
               onMouseMove={handlePreviewMouseMove}
               onMouseUp={handlePreviewMouseUp}
               onMouseLeave={handlePreviewMouseLeave}
+              // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
               style={{ cursor: isPanning ? "grabbing" : "grab" }}
             >
               {packedAtlas ? (
                 <div
                   className="absolute inset-0 flex items-center justify-center"
+                  // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                   style={{
                     transform: `translate(${previewPan.x}px, ${previewPan.y}px)`,
                   }}
                 >
                   <canvas
                     ref={previewCanvasRef}
+                    // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                     style={{
                       imageRendering: "pixelated",
                       transform: `scale(${previewZoom})`,
@@ -709,7 +711,7 @@ export function AtlasPackerView() {
                   />
                 </div>
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-center text-gray-500 dark:text-gray-400">
+                <div className="absolute inset-0 flex items-center justify-center text-center text-muted">
                   <div>
                     <div className="text-4xl mb-2">📦</div>
                     <div className="text-xs">
@@ -743,7 +745,7 @@ export function AtlasPackerView() {
             <div className="space-y-2 -mt-2">
               {/* Atlas Name */}
               <div>
-                <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1">
+                <label className="text-xs text-foreground block mb-1">
                   Atlas Name
                 </label>
                 <input
@@ -757,7 +759,7 @@ export function AtlasPackerView() {
               {/* Max Size */}
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1">
+                  <label className="text-xs text-foreground block mb-1">
                     Max Width
                   </label>
                   <select
@@ -775,7 +777,7 @@ export function AtlasPackerView() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1">
+                  <label className="text-xs text-foreground block mb-1">
                     Max Height
                   </label>
                   <select
@@ -796,7 +798,7 @@ export function AtlasPackerView() {
 
               {/* Padding */}
               <div>
-                <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1">
+                <label className="text-xs text-foreground block mb-1">
                   Padding: {settings.padding}px
                 </label>
                 <input
@@ -813,7 +815,7 @@ export function AtlasPackerView() {
 
               {/* Layout Mode */}
               <div>
-                <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1">
+                <label className="text-xs text-foreground block mb-1">
                   Layout Mode
                 </label>
                 <select
@@ -835,7 +837,7 @@ export function AtlasPackerView() {
 
               {/* Sort Method */}
               <div>
-                <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1">
+                <label className="text-xs text-foreground block mb-1">
                   Sort Method
                 </label>
                 <select
@@ -877,7 +879,7 @@ export function AtlasPackerView() {
             <div className="space-y-2 -mt-2 flex-1">
               {/* Format Selection */}
               <div>
-                <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1">
+                <label className="text-xs text-foreground block mb-1">
                   Data Format
                 </label>
                 <select
@@ -919,7 +921,7 @@ export function AtlasPackerView() {
               </div>
               {/* Auto-pack hint */}
               {frames.length > 0 && !packedAtlas && (
-                <div className="text-xs text-blue-600 dark:text-blue-400 text-center">
+                <div className="text-xs text-brand-600 text-center">
                   💡 Will auto-pack before export
                 </div>
               )}
@@ -927,7 +929,7 @@ export function AtlasPackerView() {
 
             {/* Format Info */}
             <div className="ie-panel-inset p-2 mt-2">
-              <div className="text-xs text-gray-600 dark:text-gray-400">
+              <div className="text-xs text-muted">
                 <strong>Supported Formats:</strong>
                 <ul className="mt-1 space-y-0.5">
                   {EXPORT_FORMATS.map((format) => (
@@ -965,6 +967,7 @@ export function AtlasPackerView() {
               <div className="ie-dialog-body">
                 <div
                   className="ie-panel-inset p-4 flex items-center justify-center overflow-auto"
+                  // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                   style={{
                     backgroundImage:
                       "url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22%3E%3Crect width=%2210%22 height=%2210%22 fill=%22%23ccc%22/%3E%3Crect x=%2210%22 y=%2210%22 width=%2210%22 height=%2210%22 fill=%22%23ccc%22/%3E%3C/svg%3E')",
@@ -977,6 +980,7 @@ export function AtlasPackerView() {
                     src={previewSprite.src}
                     alt={previewSprite.name}
                     className="max-w-full max-h-full object-contain"
+                    // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                     style={{
                       imageRendering: "pixelated",
                       minWidth: Math.min(previewSprite.width * 2, 400),
@@ -984,7 +988,7 @@ export function AtlasPackerView() {
                     }}
                   />
                 </div>
-                <div className="mt-2 text-xs text-gray-600 dark:text-gray-400 text-center">
+                <div className="mt-2 text-xs text-muted text-center">
                   <span className="ie-panel-inset px-2 py-1">
                     {previewSprite.width} × {previewSprite.height} px
                   </span>
@@ -1034,6 +1038,7 @@ export function AtlasPackerView() {
                 {/* Large Animation Canvas */}
                 <div
                   className="ie-panel-inset p-4 flex items-center justify-center overflow-auto"
+                  // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                   style={{
                     backgroundImage:
                       "url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22%3E%3Crect width=%2210%22 height=%2210%22 fill=%22%23ccc%22/%3E%3Crect x=%2210%22 y=%2210%22 width=%2210%22 height=%2210%22 fill=%22%23ccc%22/%3E%3C/svg%3E')",
@@ -1047,6 +1052,7 @@ export function AtlasPackerView() {
                       src={frames[currentAnimFrame].image!.src}
                       alt={frames[currentAnimFrame].name}
                       className="object-contain"
+                      // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                       style={{
                         imageRendering: "pixelated",
                         minWidth: Math.min(
@@ -1097,7 +1103,7 @@ export function AtlasPackerView() {
 
                 {/* FPS Control */}
                 <div className="mt-3">
-                  <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1 text-center">
+                  <label className="text-xs text-foreground block mb-1 text-center">
                     Speed: {animFps} FPS
                   </label>
                   <input
@@ -1145,6 +1151,7 @@ export function AtlasPackerView() {
                 {/* Preview */}
                 <div
                   className="ie-panel-inset p-2 overflow-auto max-h-40"
+                  // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                   style={{
                     backgroundImage:
                       "url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%2210%22%3E%3Crect width=%225%22 height=%225%22 fill=%22%23ccc%22/%3E%3Crect x=%225%22 y=%225%22 width=%225%22 height=%225%22 fill=%22%23ccc%22/%3E%3C/svg%3E')",
@@ -1156,13 +1163,14 @@ export function AtlasPackerView() {
                       src={spriteStripDialog.imageUrl}
                       alt="Sprite Strip Preview"
                       className="max-w-full"
+                      // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                       style={{ imageRendering: "pixelated" }}
                     />
                   )}
                 </div>
 
                 {/* Image Info */}
-                <div className="text-xs text-gray-600 dark:text-gray-400">
+                <div className="text-xs text-muted">
                   Image Size: {spriteStripDialog.imageWidth} ×{" "}
                   {spriteStripDialog.imageHeight} px
                 </div>
@@ -1170,7 +1178,7 @@ export function AtlasPackerView() {
                 {/* Settings */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1">
+                    <label className="text-xs text-foreground block mb-1">
                       Frame Width
                     </label>
                     <input
@@ -1188,7 +1196,7 @@ export function AtlasPackerView() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1">
+                    <label className="text-xs text-foreground block mb-1">
                       Frame Height
                     </label>
                     <input
@@ -1206,7 +1214,7 @@ export function AtlasPackerView() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1">
+                    <label className="text-xs text-foreground block mb-1">
                       Frame Count
                     </label>
                     <input
@@ -1223,7 +1231,7 @@ export function AtlasPackerView() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-700 dark:text-gray-300 block mb-1">
+                    <label className="text-xs text-foreground block mb-1">
                       Direction
                     </label>
                     <select
@@ -1245,7 +1253,7 @@ export function AtlasPackerView() {
                 </div>
 
                 {/* Calculated Info */}
-                <div className="ie-panel-inset p-2 text-xs text-gray-600 dark:text-gray-400">
+                <div className="ie-panel-inset p-2 text-xs text-muted">
                   <div>
                     Will extract {spriteStripDialog.frameCount} frames of{" "}
                     {spriteStripDialog.frameWidth}×
@@ -1287,7 +1295,7 @@ export function AtlasPackerView() {
               <div className="ie-dialog-body">
                 <div className="flex items-start gap-3">
                   <div className="text-3xl">❌</div>
-                  <div className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                  <div className="text-xs text-foreground whitespace-pre-wrap">
                     {error}
                   </div>
                 </div>

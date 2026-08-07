@@ -1,4 +1,5 @@
 "use client";
+import { cn } from "@/src/presentation/lib/cn";
 
 import UPNG from "upng-js";
 import JSZip from "jszip";
@@ -497,7 +498,7 @@ export default function ReducePhotoSizeView() {
     if (p.status !== "done" || p.resultSize == null) return null;
     if (p.usedOriginal) {
       return (
-        <span className="text-gray-500 dark:text-gray-400">
+        <span className="text-muted">
           ใช้ต้นฉบับ (ไม่สามารถย่อได้)
         </span>
       );
@@ -506,16 +507,16 @@ export default function ReducePhotoSizeView() {
     const pct = p.originalSize > 0 ? Math.round((diff / p.originalSize) * 100) : 0;
     const cls =
       pct > 0
-        ? "text-green-600 dark:text-green-500"
+        ? "text-success "
         : pct < 0
-          ? "text-red-500"
-          : "text-gray-400";
+          ? "text-error"
+          : "text-muted";
     const sign = pct > 0 ? `-${pct}%` : pct < 0 ? `+${-pct}%` : "0%";
     return (
       <span className={cls}>
         {formatSize(p.resultSize)} ({sign})
         {p.note && (
-          <span className="text-amber-600 dark:text-amber-400">
+          <span className="text-warning">
             {" "}
             ({p.note})
           </span>
@@ -540,11 +541,7 @@ export default function ReducePhotoSizeView() {
           /* ===== Idle: drop zone, zero settings ===== */
           <>
             <div
-              className={`ie-panel-inset flex-1 flex items-center justify-center cursor-pointer transition-colors border-2 border-dashed ${
-                isDragging
-                  ? "bg-blue-100 dark:bg-blue-900 border-blue-400"
-                  : "border-gray-400 dark:border-gray-600"
-              }`}
+              className={cn("ie-panel-inset flex-1 flex items-center justify-center cursor-pointer transition-colors border-2 border-dashed", isDragging ? "bg-brand-100 border-brand-400" : "border-border ")}
               onClick={() => fileInputRef.current?.click()}
               onDragOver={(e) => {
                 e.preventDefault();
@@ -567,7 +564,7 @@ export default function ReducePhotoSizeView() {
             >
               <div className="text-center px-4">
                 <div className="text-5xl mb-3">📉</div>
-                <div className="text-sm text-gray-700 dark:text-gray-300">
+                <div className="text-sm text-foreground">
                   ลากไฟล์ภาพมาวางที่นี่ หรือ
                 </div>
                 <button
@@ -579,7 +576,7 @@ export default function ReducePhotoSizeView() {
                 >
                   📁 เลือกไฟล์
                 </button>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                <div className="text-xs text-muted mt-2">
                   รองรับ PNG / JPEG / WebP หลายไฟล์พร้อมกัน
                 </div>
               </div>
@@ -612,7 +609,7 @@ export default function ReducePhotoSizeView() {
 
               <div className="ie-separator" />
 
-              <label className="text-xs text-gray-700 dark:text-gray-300">
+              <label className="text-xs text-foreground">
                 รูปแบบ:
               </label>
               <select
@@ -631,7 +628,7 @@ export default function ReducePhotoSizeView() {
                 <option value="webp">WebP</option>
               </select>
 
-              <span className="text-xs text-gray-700 dark:text-gray-300 whitespace-nowrap">
+              <span className="text-xs text-foreground whitespace-nowrap">
                 {pngPaletteActive
                   ? `จำนวนสี: ${paletteFor(settings.quality)}`
                   : `คุณภาพ: ${settings.quality}`}
@@ -663,7 +660,7 @@ export default function ReducePhotoSizeView() {
               <div className="flex-1" />
 
               <button
-                className="ie-button bg-green-600 text-white font-bold px-4"
+                className="ie-button bg-success text-on-brand font-bold px-4"
                 onClick={downloadAll}
                 disabled={busy || donePhotos.length === 0}
               >
@@ -677,11 +674,11 @@ export default function ReducePhotoSizeView() {
                 <span className="ie-groupbox-title">🔧 การตั้งค่าขั้นสูง</span>
                 <div className="p-2 -mt-2 flex flex-wrap gap-x-8 gap-y-3">
                   <div className="min-w-[200px]">
-                    <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <div className="text-xs font-medium text-foreground mb-1">
                       📐 ขนาดภาพ
                     </div>
                     <div className="space-y-1">
-                      <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer">
+                      <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
                         <input
                           type="radio"
                           name="resizeMode"
@@ -692,7 +689,7 @@ export default function ReducePhotoSizeView() {
                         />
                         โหมด % (เทียบขนาดเดิม)
                       </label>
-                      <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer">
+                      <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
                         <input
                           type="radio"
                           name="resizeMode"
@@ -705,7 +702,7 @@ export default function ReducePhotoSizeView() {
                       </label>
                       {settings.resizeMode === "percent" ? (
                         <>
-                          <div className="text-xs text-gray-700 dark:text-gray-300">
+                          <div className="text-xs text-foreground">
                             เปอร์เซ็นต์: {settings.percent}%
                           </div>
                           <input
@@ -749,7 +746,7 @@ export default function ReducePhotoSizeView() {
                             }
                             className="ie-input w-28"
                           />
-                          <span className="text-xs text-gray-600 dark:text-gray-400">
+                          <span className="text-xs text-muted">
                             px
                           </span>
                         </div>
@@ -759,14 +756,14 @@ export default function ReducePhotoSizeView() {
 
                   {settings.format === "png" && (
                     <div className="min-w-[220px]">
-                      <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <div className="text-xs font-medium text-foreground mb-1">
                         🖼️ โหมด PNG
                       </div>
                       <div className="space-y-1">
                         {PNG_MODES.map((m) => (
                           <label
                             key={m.value}
-                            className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer"
+                            className="flex items-center gap-2 text-xs text-foreground cursor-pointer"
                           >
                             <input
                               type="radio"
@@ -781,7 +778,7 @@ export default function ReducePhotoSizeView() {
                             />
                             <span>
                               {m.label}
-                              <span className="block text-[10px] text-gray-500 dark:text-gray-400">
+                              <span className="block text-[10px] text-muted">
                                 {m.hint}
                               </span>
                             </span>
@@ -804,7 +801,7 @@ export default function ReducePhotoSizeView() {
                                 }))
                               }
                             />
-                            <span className="text-xs text-gray-600 dark:text-gray-400">
+                            <span className="text-xs text-muted">
                               KB
                             </span>
                           </div>
@@ -822,9 +819,9 @@ export default function ReducePhotoSizeView() {
                 📁 รูปภาพ ({photos.length})
               </span>
               {donePhotos.length > 0 && (
-                <div className="px-2 py-1 text-xs border-b border-gray-200 dark:border-gray-700">
+                <div className="px-2 py-1 text-xs border-b border-border">
                   ประหยัดแล้ว:{" "}
-                  <span className="text-green-600 dark:text-green-500 font-medium">
+                  <span className="text-success font-medium">
                     {savingsPct}%
                   </span>{" "}
                   ({formatSize(totalOriginal)} → {formatSize(totalResult)})
@@ -838,10 +835,11 @@ export default function ReducePhotoSizeView() {
                   return (
                     <div
                       key={photo.id}
-                      className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
+                      className="flex items-center gap-3 p-2 hover:bg-muted-surface border-b border-border"
                     >
                       <div
-                        className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded flex-shrink-0"
+                        className="w-16 h-16 bg-muted-surface rounded flex-shrink-0"
+                        // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                         style={{
                           backgroundImage: `url(${photo.preview})`,
                           backgroundSize: "contain",
@@ -850,10 +848,10 @@ export default function ReducePhotoSizeView() {
                         }}
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
+                        <div className="text-xs font-medium text-foreground truncate">
                           {photo.name}
                         </div>
-                        <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                        <div className="text-[10px] text-muted">
                           {photo.width > 0
                             ? `${photo.width}×${photo.height}px`
                             : "-"}
@@ -861,10 +859,10 @@ export default function ReducePhotoSizeView() {
                             ? ` → ${photo.resultWidth}×${photo.resultHeight}px`
                             : ""}
                         </div>
-                        <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                        <div className="text-[10px] text-muted">
                           {formatSize(photo.originalSize)}
                           {staleRow ? (
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-muted">
                               {" "}
                               ⏳ กำลังคำนวณ…
                             </span>
@@ -873,7 +871,7 @@ export default function ReducePhotoSizeView() {
                           )}
                         </div>
                         {photo.status === "error" && (
-                          <div className="text-[10px] text-red-500">
+                          <div className="text-[10px] text-error">
                             {photo.error}
                           </div>
                         )}
@@ -891,11 +889,11 @@ export default function ReducePhotoSizeView() {
                           </button>
                         )}
                         {photo.status === "error" && (
-                          <span className="text-red-500 text-xs">❌</span>
+                          <span className="text-error text-xs">❌</span>
                         )}
                       </div>
                       <button
-                        className="w-5 h-5 rounded text-xs text-gray-500 hover:text-red-500 hover:bg-gray-200 dark:hover:bg-gray-700 flex-shrink-0"
+                        className="w-5 h-5 rounded text-xs text-muted hover:text-error hover:bg-muted-surface flex-shrink-0"
                         onClick={() => removePhoto(photo.id)}
                         title="ลบออก"
                       >
@@ -940,7 +938,7 @@ export default function ReducePhotoSizeView() {
               <div className="ie-dialog-body">
                 <div className="flex items-start gap-3">
                   <div className="text-3xl">❌</div>
-                  <div className="text-xs text-gray-700 dark:text-gray-300">
+                  <div className="text-xs text-foreground">
                     {error}
                   </div>
                 </div>

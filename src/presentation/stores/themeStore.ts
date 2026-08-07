@@ -1,21 +1,26 @@
 "use client";
 
-import type { Theme, ThemeState } from "@/src/domain/types/theme";
+import {
+  DEFAULT_TEMPLATE,
+  THEME_STORAGE_KEY,
+  type ThemeState,
+  type ThemeTemplate,
+} from "@/src/domain/types/theme";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
-      theme: "light",
-      setTheme: (theme: Theme) => set({ theme }),
-      toggleTheme: () =>
-        set((state) => ({
-          theme: state.theme === "light" ? "dark" : "light",
-        })),
+      template: DEFAULT_TEMPLATE,
+      dark: false,
+      setTemplate: (template: ThemeTemplate) => set({ template }),
+      setDark: (dark: boolean) => set({ dark }),
+      toggleDark: () => set((state) => ({ dark: !state.dark })),
     }),
     {
-      name: "theme-storage",
+      // ⚠️ ต้องตรงกับ key ที่ ThemeScript อ่านตอน first paint (กัน FOUC)
+      name: THEME_STORAGE_KEY,
     }
   )
 );
