@@ -120,8 +120,9 @@ export default function ReducePhotoSizeView() {
   const [settings, setSettings] = useState<Settings>({
     format: "auto",
     quality: 85,
+    // จุดประสงค์ = ลดขนาดไฟล์ ไม่ใช่ลด resolution → default 100% (คงมิติเดิม)
     resizeMode: "percent",
-    percent: 50,
+    percent: 100,
     maxDim: 1024,
     pngMode: "palette",
     targetKB: 500,
@@ -165,7 +166,8 @@ export default function ReducePhotoSizeView() {
       canvas.width = outW;
       canvas.height = outH;
 
-      const ctx = canvas.getContext("2d");
+      // willReadFrequently: PNG path does repeated getImageData readbacks
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
       if (!ctx) throw new Error("ไม่สามารถสร้าง canvas context ได้");
 
       // JPEG has no alpha — composite onto white instead of black
@@ -193,26 +195,19 @@ export default function ReducePhotoSizeView() {
             paletteFor(settings.quality)
           );
         } else {
-          // target mode: try palette sizes until ≤ targetKB
+          // target mode: try palette sizes until ≤ targetKB.
+          // 64-col max: bigger palettes rarely shrink below target and are slow on
+          // large images. Skip rendering a note unless we truly cannot hit target —
+          // the first palette ≤ target is the largest that fits = best quality.
           const targetBytes = settings.targetKB * 1024;
-          let bestBuf: ArrayBuffer | null = null;
-          let bestSize = Infinity;
           for (const colors of PALETTE_STEPS) {
             const buf = UPNG.encode([rgba.buffer], outW, outH, colors);
+            buffer = buf;
             if (buf.byteLength <= targetBytes) {
-              buffer = buf;
               break; // hit target
-            }
-            if (buf.byteLength < bestSize) {
-              bestBuf = buf;
-              bestSize = buf.byteLength;
             }
             // yield between sync encodes so UI stays responsive
             await new Promise((r) => setTimeout(r, 0));
-          }
-          if (bestBuf !== null) {
-            buffer = bestBuf;
-            note = `เข้าเป้าไม่ได้ ใกล้สุด = ${formatSize(bestSize)}`;
           }
         }
 
@@ -282,6 +277,11 @@ export default function ReducePhotoSizeView() {
     const stale = photos.filter(
       (p) => p.resultKey !== settingsKey && p.status !== "error"
     );
+    // Revoke object URLs of rows that are about to be re-encoded — the old
+    // blob becomes unreachable once the new result overwrites it.
+    stale.forEach((p) => {
+      if (p.resultUrl) URL.revokeObjectURL(p.resultUrl);
+    });
     if (stale.length === 0) {
       setIsProcessing(false);
       return;
@@ -303,13 +303,21 @@ export default function ReducePhotoSizeView() {
       }
       setIsProcessing(true);
       const results: Record<string, PhotoFile> = {};
+      const createdUrls: string[] = [];
       for (const item of current) {
-        if (runGenRef.current !== gen) return; // superseded — drop
+        if (runGenRef.current !== gen) {
+          // Superseded mid-run — URLs we already created are owned by a
+          // discarded run; revoke them now instead of leaking until unload.
+          createdUrls.forEach((u) => URL.revokeObjectURL(u));
+          return; // superseded — drop
+        }
         try {
           results[item.id] = await processFile({
             ...item,
             status: "processing",
           });
+          if (results[item.id].resultUrl)
+            createdUrls.push(results[item.id].resultUrl as string);
         } catch (err) {
           results[item.id] = {
             ...item,
@@ -318,9 +326,13 @@ export default function ReducePhotoSizeView() {
           };
         }
       }
-      if (runGenRef.current !== gen) return; // superseded — drop commit
-      // note: results whose URL was created for a discarded run leak until
-      // page unload (tiny; acceptable)
+      if (runGenRef.current !== gen) {
+        // Superseded: the run that replaced us revoked already-invalidated URLs
+        // (stale rows). The URLs we just created are owned by a discarded run —
+        // revoke them now so they do not leak until page unload.
+        createdUrls.forEach((u) => URL.revokeObjectURL(u));
+        return; // superseded — drop commit
+      }
       setPhotos((prev) => prev.map((p) => results[p.id] ?? p));
       setIsProcessing(false);
     }, delay);
@@ -331,9 +343,14 @@ export default function ReducePhotoSizeView() {
   }, [settingsKey, photos, processFile, settings.format, settings.pngMode]);
 
   const addFiles = useCallback(async (files: FileList | File[]) => {
+    // Snapshot the file list up front. e.target.value = "" (in handleFileChange)
+    // runs while this async loop is mid-await; it resets input.files to an
+    // empty FileList, so a live `files.length` read after the first await would
+    // see 0 and drop every file after the first.
+    const items = Array.from(files);
     const newPhotos: PhotoFile[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    for (let i = 0; i < items.length; i++) {
+      const file = items[i];
       if (!file.type.startsWith("image/")) continue;
 
       const preview = await new Promise<string>((resolve) => {
@@ -456,8 +473,10 @@ export default function ReducePhotoSizeView() {
 
   const donePhotos = photos.filter((p) => p.status === "done");
   const usedOriginalCount = donePhotos.filter((p) => p.usedOriginal).length;
-  const totalOriginal = photos.reduce((s, p) => s + p.originalSize, 0);
+  // Only count rows that already have a result — comparing pending photos
+  // against an empty result sum would show a fake savings of 100%.
   const totalResult = donePhotos.reduce((s, p) => s + (p.resultSize ?? 0), 0);
+  const totalOriginal = donePhotos.reduce((s, p) => s + p.originalSize, 0);
   const savingsPct =
     totalOriginal > 0
       ? Math.round(((totalOriginal - totalResult) / totalOriginal) * 100)
@@ -533,7 +552,10 @@ export default function ReducePhotoSizeView() {
               }}
               onDragLeave={(e) => {
                 e.preventDefault();
-                setIsDragging(false);
+                // Only clear when the drag truly left the zone — dragging over a
+                // child re-fires dragleave and would flicker the highlight.
+                if (!e.currentTarget.contains(e.relatedTarget as Node))
+                  setIsDragging(false);
               }}
               onDrop={(e) => {
                 e.preventDefault();
