@@ -1,13 +1,36 @@
+/* ============================================
+   Game Asset Tool — CSS entry point
+   สถาปัตยกรรม 4 ชั้น (skill: nextjs-semantic-theme)
+     next/font (layout.tsx) → --font-noto-thai
+     themes/<theme>.css     → ค่าจริงของ token ต่อธีม ([data-theme] + .dark)
+     theme.css              → map token → Tailwind utility (var() ล้วน)
+     index.css              → entry นี้ + @layer base
+   ⚠️ ห้ามสลับลำดับ @import — tailwindcss ต้องมาก่อนสุด
+   ============================================ */
+
 @import "tailwindcss";
 
-/* custom variants */
-@custom-variant dark (&:where(.dark, .dark *));
-
-@import "./fonts.css";
+/* ชั้น map (var() ล้วน — ไม่มี hex) */
 @import "./theme.css";
-@import "./base.css";
+
+/* Palette ต่อธีม — ie5 เป็น default (ผูกกับ :root ด้วย)
+   เพิ่มธีมใหม่ = สร้าง themes/<id>.css แล้ว @import ต่อท้ายบรรทัดนี้ */
+@import "./themes/ie5.css";
+
+/* Skin + component class ที่ต่อยอดจาก token */
 @import "./components.css";
-@import "./utilities.css";
-@import "./dark.css";
-@import "./landing.css";
 @import "./ie5.css";
+
+@layer base {
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-body);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading-family);
+  }
+}

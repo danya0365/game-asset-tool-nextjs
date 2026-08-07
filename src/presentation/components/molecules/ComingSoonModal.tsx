@@ -42,10 +42,10 @@ export function ComingSoonModal({
 
             {/* Message */}
             <div className="flex-1">
-              <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">
+              <p className="text-sm font-bold text-foreground mb-2">
                 กำลังพัฒนา
               </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+              <p className="text-xs text-muted mb-2">
                 {featureName ? (
                   <>
                     ฟีเจอร์ <strong>&quot;{featureName}&quot;</strong>{" "}
@@ -55,7 +55,7 @@ export function ComingSoonModal({
                   <>ฟีเจอร์นี้กำลังอยู่ในระหว่างการพัฒนา</>
                 )}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-500">
+              <p className="text-xs text-muted">
                 โปรดรอติดตามการอัปเดตในเวอร์ชันถัดไป
               </p>
             </div>
@@ -64,15 +64,15 @@ export function ComingSoonModal({
           {/* Progress indicator */}
           <div className="mt-4">
             <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-gray-600 dark:text-gray-400">
+              <span className="text-muted">
                 Development Progress
               </span>
-              <span className="text-gray-500 dark:text-gray-500">
+              <span className="text-muted">
                 Coming Soon...
               </span>
             </div>
             <div className="ie-progress">
-              <div className="ie-progress-bar" style={{ width: "30%" }} />
+              <div className="ie-progress-bar w-[30%]" />
             </div>
           </div>
         </div>

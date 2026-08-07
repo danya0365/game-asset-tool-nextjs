@@ -1,4 +1,5 @@
 "use client";
+import { cn } from "@/src/presentation/lib/cn";
 
 import JSZip from "jszip";
 import React, { useCallback, useRef, useState } from "react";
@@ -553,7 +554,7 @@ ${asset.name}
           </button>
 
           <button
-            className="ie-button text-red-500"
+            className="ie-button text-error"
             onClick={() => {
               setAssets([]);
               setSelectedAssets([]);
@@ -566,7 +567,7 @@ ${asset.name}
           <div className="flex-1" />
 
           <button
-            className="ie-button bg-green-600 text-white font-bold px-4"
+            className="ie-button bg-success text-on-brand font-bold px-4"
             onClick={handleExport}
             disabled={assets.length === 0 || isExporting}
           >
@@ -590,15 +591,12 @@ ${asset.name}
                     {assets.map((asset) => (
                       <div
                         key={asset.id}
-                        className={`relative group cursor-pointer border-2 rounded ${
-                          selectedAssets.includes(asset.id)
-                            ? "border-blue-500 bg-blue-100 dark:bg-blue-900"
-                            : "border-gray-300 dark:border-gray-600"
-                        }`}
+                        className={cn("relative group cursor-pointer border-2 rounded", selectedAssets.includes(asset.id) ? "border-brand-500 bg-brand-100 " : "border-border ")}
                         onClick={() => toggleAssetSelection(asset.id)}
                       >
                         <div
-                          className="w-full aspect-square bg-gray-100 dark:bg-gray-800"
+                          className="w-full aspect-square bg-muted-surface"
+                          // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                           style={{
                             backgroundImage: `url(${asset.preview})`,
                             backgroundSize: "contain",
@@ -607,11 +605,11 @@ ${asset.name}
                             imageRendering: "pixelated",
                           }}
                         />
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[8px] px-1 truncate">
+                        <div className="absolute bottom-0 left-0 right-0 bg-overlay text-on-brand text-[8px] px-1 truncate">
                           {asset.name}
                         </div>
                         <button
-                          className="absolute top-0 right-0 bg-red-500 text-white text-xs w-4 h-4 rounded-bl opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-0 right-0 bg-error text-on-brand text-xs w-4 h-4 rounded-bl opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={(e) => {
                             e.stopPropagation();
                             removeAsset(asset.id);
@@ -620,7 +618,7 @@ ${asset.name}
                           ×
                         </button>
                         {selectedAssets.includes(asset.id) && (
-                          <div className="absolute top-0 left-0 bg-blue-500 text-white text-xs w-4 h-4 rounded-br flex items-center justify-center">
+                          <div className="absolute top-0 left-0 bg-brand-500 text-on-brand text-xs w-4 h-4 rounded-br flex items-center justify-center">
                             ✓
                           </div>
                         )}
@@ -628,7 +626,7 @@ ${asset.name}
                     ))}
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500">
+                  <div className="flex items-center justify-center h-full text-muted">
                     <div className="text-center">
                       <div className="text-4xl mb-2">📤</div>
                       <p>Import assets to begin</p>
@@ -647,12 +645,12 @@ ${asset.name}
               <div className="ie-panel-inset h-full overflow-auto p-1 font-mono text-xs">
                 {exportLog.length > 0 ? (
                   exportLog.map((log, i) => (
-                    <div key={i} className="text-gray-600 dark:text-gray-400">
+                    <div key={i} className="text-muted">
                       {log}
                     </div>
                   ))
                 ) : (
-                  <div className="text-gray-400 text-center py-2">
+                  <div className="text-muted text-center py-2">
                     Log จะแสดงที่นี่เมื่อทำการ export
                   </div>
                 )}
@@ -669,11 +667,7 @@ ${asset.name}
                 {EXPORT_FORMATS.map((format) => (
                   <div
                     key={format.id}
-                    className={`flex items-center gap-2 p-2 cursor-pointer rounded mb-1 ${
-                      settings.format === format.id
-                        ? "bg-blue-100 dark:bg-blue-900 border border-blue-500"
-                        : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                    }`}
+                    className={cn("flex items-center gap-2 p-2 cursor-pointer rounded mb-1", settings.format === format.id ? "bg-brand-100 border border-brand-500" : "hover:bg-muted-surface ")}
                     onClick={() =>
                       setSettings((s) => ({ ...s, format: format.id }))
                     }
@@ -681,12 +675,12 @@ ${asset.name}
                     <span className="text-xl">{format.icon}</span>
                     <div className="flex-1">
                       <div className="text-xs font-bold">{format.name}</div>
-                      <div className="text-[10px] text-gray-500">
+                      <div className="text-[10px] text-muted">
                         {format.engine}
                       </div>
                     </div>
                     {settings.format === format.id && (
-                      <span className="text-green-500">✓</span>
+                      <span className="text-success">✓</span>
                     )}
                   </div>
                 ))}
@@ -699,7 +693,7 @@ ${asset.name}
                 <span className="ie-groupbox-title">ℹ️ Format Info</span>
                 <div className="p-2 text-xs">
                   <p className="mb-1">{currentFormat.description}</p>
-                  <p className="text-gray-500">
+                  <p className="text-muted">
                     Output: {currentFormat.extensions.join(" + ")}
                   </p>
                 </div>
@@ -808,9 +802,10 @@ ${asset.name}
               <div className="ie-groupbox">
                 <span className="ie-groupbox-title">⏳ Progress</span>
                 <div className="p-2">
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded h-4 overflow-hidden">
+                  <div className="w-full bg-muted-surface rounded h-4 overflow-hidden">
                     <div
-                      className="bg-blue-500 h-full transition-all duration-300"
+                      className="bg-brand-500 h-full transition-all duration-300"
+                      // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                       style={{ width: `${exportProgress}%` }}
                     />
                   </div>

@@ -1,45 +1,50 @@
+/* ============================================
+   Components — class ที่ใช้ซ้ำและซับซ้อนเกินกว่าจะเขียนด้วย utility
+   ⚠️ ห้าม hardcode สี — ใช้ var(--token) เท่านั้น
+   ⚠️ เพิ่ม class ที่นี่เมื่อ "มีที่ใช้จริง" เท่านั้น (เคยมี dead CSS สะสม 180 บรรทัด)
+   ============================================ */
 @layer base {
-  /* Animation classes */
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  /* ===== Checkerboard — พื้นหลังแสดง "ส่วนโปร่งใส" ของภาพ ===== */
+  .canvas-checker {
+    background-color: var(--canvas);
+    background-image: repeating-conic-gradient(
+      var(--canvas-grid) 0% 25%,
+      var(--canvas) 0% 50%
+    );
+    background-size: 16px 16px;
+    background-position: 50%;
   }
 
-  .animate-fade-in {
-    animation: fade-in 0.3s ease-out;
+  /* ===== ภาพ pixel art ต้องไม่ถูก interpolate ตอนซูม ===== */
+  .pixelated {
+    image-rendering: pixelated;
   }
 
-  /* Grid Pattern Background */
-  .grid-pattern {
-    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  /* ===== รางเลือก Hue ของ color picker =====
+     สเปกตรัมสีเต็มวง — เป็น "ข้อมูล" ไม่ใช่สีของธีม จึงไม่ผูกกับ token */
+  .hue-rail {
+    background: linear-gradient(
+      to right,
+      #ff0000,
+      #ffff00,
+      #00ff00,
+      #00ffff,
+      #0000ff,
+      #ff00ff,
+      #ff0000
+    );
   }
 
-  /* Keyboard Shortcut Key Style */
+  /* ===== Keyboard Shortcut Key ===== */
   .ie-kbd {
     display: inline-block;
     padding: 2px 6px;
     font-size: 10px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-      monospace;
-    background: linear-gradient(180deg, #f5f5f5 0%, #e0e0e0 100%);
-    border: 1px solid #c0c0c0;
-    border-radius: 3px;
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.5);
-    color: #333;
-  }
-
-  .dark .ie-kbd {
-    background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%);
-    border-color: #555;
-    color: #ddd;
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+    font-family: var(--font-mono-family);
+    background: var(--muted-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--sk-radius-sm);
+    box-shadow: var(--sk-shadow-xs);
+    color: var(--foreground);
   }
 }

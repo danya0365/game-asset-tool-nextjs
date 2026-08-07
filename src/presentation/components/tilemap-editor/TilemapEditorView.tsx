@@ -1,4 +1,5 @@
 "use client";
+import { cn } from "@/src/presentation/lib/cn";
 
 import { TILE_SIZES } from "@/src/domain/types/tilemap";
 import {
@@ -1136,16 +1137,16 @@ export function TilemapEditorView() {
     <MainLayout title="Tilemap Editor - Game Asset Tool">
       {/* Error Toast */}
       {error && (
-        <div className="fixed top-4 right-4 z-50 ie-panel p-3 bg-red-100 border-red-500 max-w-sm">
+        <div className="fixed top-4 right-4 z-50 ie-panel p-3 bg-error-surface border-error max-w-sm">
           <div className="flex items-start gap-2">
-            <span className="text-red-500">⚠️</span>
+            <span className="text-error">⚠️</span>
             <div className="flex-1">
-              <div className="font-bold text-red-700 text-sm">Error</div>
-              <div className="text-red-600 text-xs">{error}</div>
+              <div className="font-bold text-error text-sm">Error</div>
+              <div className="text-error text-xs">{error}</div>
             </div>
             <button
               onClick={clearError}
-              className="text-red-500 hover:text-red-700"
+              className="text-error hover:text-error"
             >
               ×
             </button>
@@ -1182,6 +1183,7 @@ export function TilemapEditorView() {
             >
               {activeTileset ? (
                 <div
+                  // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                   style={{
                     transform: `translate(${tilesetPan.x}px, ${tilesetPan.y}px) scale(${tilesetZoom})`,
                     transformOrigin: "0 0",
@@ -1194,12 +1196,13 @@ export function TilemapEditorView() {
                 >
                   <canvas
                     ref={tilesetCanvasRef}
+                    // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                     style={{ imageRendering: "pixelated" }}
                     onClick={handleTilesetClick}
                   />
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-full text-gray-500 text-xs p-4 text-center">
+                <div className="flex items-center justify-center h-full text-muted text-xs p-4 text-center">
                   No tileset loaded
                   <br />
                   Click &quot;Load Tileset&quot; to import
@@ -1215,9 +1218,7 @@ export function TilemapEditorView() {
                 📁 Load
               </button>
               <button
-                className={`ie-button ie-button-sm px-1.5 ${
-                  tilesetPanMode ? "ie-button-active" : ""
-                }`}
+                className={cn("ie-button ie-button-sm px-1.5", tilesetPanMode ? "ie-button-active" : "")}
                 onClick={() => setTilesetPanMode((m) => !m)}
                 disabled={!activeTileset}
                 title={
@@ -1277,11 +1278,7 @@ export function TilemapEditorView() {
               {tilemap?.layers.map((layer, index) => (
                 <div
                   key={layer.id}
-                  className={`flex items-center gap-1 p-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 ${
-                    activeLayer === layer.id
-                      ? "bg-blue-100 dark:bg-blue-900"
-                      : ""
-                  }`}
+                  className={cn("flex items-center gap-1 p-1 cursor-pointer hover:bg-muted-surface", activeLayer === layer.id ? "bg-brand-100 " : "")}
                   onClick={() => setActiveLayer(layer.id)}
                 >
                   <button
@@ -1364,7 +1361,7 @@ export function TilemapEditorView() {
                     </button>
                     {tilemap.layers.length > 1 && (
                       <button
-                        className="text-xs text-red-500 opacity-50 hover:opacity-100"
+                        className="text-xs text-error opacity-50 hover:opacity-100"
                         onClick={(e) => {
                           e.stopPropagation();
                           removeLayer(layer.id);
@@ -1413,7 +1410,7 @@ export function TilemapEditorView() {
             <span className="ie-groupbox-title">Tile Groups</span>
             <div className="ie-panel-inset max-h-32 overflow-auto ie-scrollbar -mt-2">
               {tileGroups.length === 0 ? (
-                <div className="text-xs text-gray-500 p-2 text-center">
+                <div className="text-xs text-muted p-2 text-center">
                   No groups saved
                   <br />
                   Select tiles then click 🏠
@@ -1422,11 +1419,7 @@ export function TilemapEditorView() {
                 tileGroups.map((group) => (
                   <div
                     key={group.id}
-                    className={`flex items-center justify-between p-1.5 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 ${
-                      activeTileGroup?.id === group.id
-                        ? "bg-blue-100 dark:bg-blue-900"
-                        : ""
-                    }`}
+                    className={cn("flex items-center justify-between p-1.5 cursor-pointer hover:bg-muted-surface", activeTileGroup?.id === group.id ? "bg-brand-100 " : "")}
                     onClick={() => {
                       if (activeTileGroup?.id === group.id) {
                         setActiveTileGroup(null);
@@ -1437,12 +1430,12 @@ export function TilemapEditorView() {
                   >
                     <span className="text-xs truncate flex-1">
                       📦 {group.name}
-                      <span className="text-gray-500 ml-1">
+                      <span className="text-muted ml-1">
                         ({group.parts[0]?.width}x{group.parts[0]?.height})
                       </span>
                     </span>
                     <button
-                      className="text-xs text-red-500 opacity-50 hover:opacity-100 ml-1"
+                      className="text-xs text-error opacity-50 hover:opacity-100 ml-1"
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteTileGroup(group.id);
@@ -1464,11 +1457,11 @@ export function TilemapEditorView() {
               ➕ Create Group
             </button>
             {activeTileGroup && (
-              <div className="text-xs text-green-600 dark:text-green-400 mt-1 p-1 bg-green-100 dark:bg-green-900/30 rounded">
+              <div className="text-xs text-success mt-1 p-1 bg-success-surface rounded">
                 ✓ Using: <strong>{activeTileGroup.name}</strong>
                 {activeTileGroup.parts.some((p) => p.repeatable) ? (
                   <div className="flex items-center gap-1 mt-1">
-                    <span className="text-gray-600 dark:text-gray-400">
+                    <span className="text-muted">
                       Floors:
                     </span>
                     <button
@@ -1496,7 +1489,7 @@ export function TilemapEditorView() {
                     </button>
                   </div>
                 ) : (
-                  <div className="text-gray-500">Click on tilemap to stamp</div>
+                  <div className="text-muted">Click on tilemap to stamp</div>
                 )}
               </div>
             )}
@@ -1510,63 +1503,49 @@ export function TilemapEditorView() {
             <div className="flex items-center gap-1 mb-1 flex-wrap">
               <div className="flex gap-0.5 ie-panel-inset p-0.5">
                 <button
-                  className={`ie-button ie-button-sm px-1.5 ${
-                    tool === "pencil" ? "ie-button-active" : ""
-                  }`}
+                  className={cn("ie-button ie-button-sm px-1.5", tool === "pencil" ? "ie-button-active" : "")}
                   onClick={() => setTool("pencil")}
                   title="Pencil"
                 >
                   ✏️
                 </button>
                 <button
-                  className={`ie-button ie-button-sm px-1.5 ${
-                    tool === "eraser" ? "ie-button-active" : ""
-                  }`}
+                  className={cn("ie-button ie-button-sm px-1.5", tool === "eraser" ? "ie-button-active" : "")}
                   onClick={() => setTool("eraser")}
                   title="Eraser"
                 >
                   🧹
                 </button>
                 <button
-                  className={`ie-button ie-button-sm px-1.5 ${
-                    tool === "bucket" ? "ie-button-active" : ""
-                  }`}
+                  className={cn("ie-button ie-button-sm px-1.5", tool === "bucket" ? "ie-button-active" : "")}
                   onClick={() => setTool("bucket")}
                   title="Bucket Fill"
                 >
                   🪣
                 </button>
                 <button
-                  className={`ie-button ie-button-sm px-1.5 ${
-                    tool === "picker" ? "ie-button-active" : ""
-                  }`}
+                  className={cn("ie-button ie-button-sm px-1.5", tool === "picker" ? "ie-button-active" : "")}
                   onClick={() => setTool("picker")}
                   title="Tile Picker (4/I)"
                 >
                   💉
                 </button>
                 <button
-                  className={`ie-button ie-button-sm px-1.5 ${
-                    tool === "select" ? "ie-button-active" : ""
-                  }`}
+                  className={cn("ie-button ie-button-sm px-1.5", tool === "select" ? "ie-button-active" : "")}
                   onClick={() => setTool("select")}
                   title="Select (5/S) - Copy: ⌘C, Paste: ⌘V"
                 >
                   ⬚
                 </button>
                 <button
-                  className={`ie-button ie-button-sm px-1.5 ${
-                    tool === "pan" ? "ie-button-active" : ""
-                  }`}
+                  className={cn("ie-button ie-button-sm px-1.5", tool === "pan" ? "ie-button-active" : "")}
                   onClick={() => setTool("pan")}
                   title="Pan (Hand Tool)"
                 >
                   ✋
                 </button>
                 <button
-                  className={`ie-button ie-button-sm px-1.5 ${
-                    tool === "autotile" ? "ie-button-active" : ""
-                  }`}
+                  className={cn("ie-button ie-button-sm px-1.5", tool === "autotile" ? "ie-button-active" : "")}
                   onClick={() => setTool("autotile")}
                   title="Auto-tile (Terrain)"
                   disabled={!activeAutoTileRule}
@@ -1574,22 +1553,18 @@ export function TilemapEditorView() {
                   🌿
                 </button>
               </div>
-              <div className="w-px h-5 bg-gray-400 mx-1" />
+              <div className="w-px h-5 bg-muted mx-1" />
               {/* Tile Transform */}
               <div className="flex gap-0.5 ie-panel-inset p-0.5">
                 <button
-                  className={`ie-button ie-button-sm px-1 ${
-                    tileFlipH ? "ie-button-active" : ""
-                  }`}
+                  className={cn("ie-button ie-button-sm px-1", tileFlipH ? "ie-button-active" : "")}
                   onClick={() => setTileFlipH(!tileFlipH)}
                   title="Flip Horizontal"
                 >
                   ↔️
                 </button>
                 <button
-                  className={`ie-button ie-button-sm px-1 ${
-                    tileFlipV ? "ie-button-active" : ""
-                  }`}
+                  className={cn("ie-button ie-button-sm px-1", tileFlipV ? "ie-button-active" : "")}
                   onClick={() => setTileFlipV(!tileFlipV)}
                   title="Flip Vertical"
                 >
@@ -1606,26 +1581,22 @@ export function TilemapEditorView() {
                   )}
                 </button>
               </div>
-              <div className="w-px h-5 bg-gray-400 mx-1" />
+              <div className="w-px h-5 bg-muted mx-1" />
               <button
-                className={`ie-button ie-button-sm px-1.5 ${
-                  showGrid ? "ie-button-active" : ""
-                }`}
+                className={cn("ie-button ie-button-sm px-1.5", showGrid ? "ie-button-active" : "")}
                 onClick={toggleGrid}
                 title="Toggle Grid"
               >
                 #
               </button>
               <button
-                className={`ie-button ie-button-sm px-1.5 ${
-                  animatedTilesEnabled ? "ie-button-active" : ""
-                }`}
+                className={cn("ie-button ie-button-sm px-1.5", animatedTilesEnabled ? "ie-button-active" : "")}
                 onClick={() => setAnimatedTilesEnabled(!animatedTilesEnabled)}
                 title="Toggle Animated Tiles Preview"
               >
                 🎬
               </button>
-              <div className="w-px h-5 bg-gray-400 mx-1" />
+              <div className="w-px h-5 bg-muted mx-1" />
               <button
                 className="ie-button ie-button-sm px-1.5"
                 onClick={undo}
@@ -1677,7 +1648,7 @@ export function TilemapEditorView() {
               </div>
               {/* Cursor Position */}
               {hoverTilePos && (
-                <span className="text-xs text-gray-500 ml-2">
+                <span className="text-xs text-muted ml-2">
                   X: {hoverTilePos.x}, Y: {hoverTilePos.y}
                 </span>
               )}
@@ -1686,13 +1657,14 @@ export function TilemapEditorView() {
             {/* Canvas Container */}
             <div
               ref={containerRef}
-              className="ie-panel-inset flex-1 overflow-hidden relative bg-[#1a1a2e]"
+              className="ie-panel-inset flex-1 overflow-hidden relative bg-canvas"
               onMouseDown={handleCanvasMouseDown}
               onMouseMove={handleCanvasMouseMove}
               onMouseUp={handleCanvasMouseUp}
               onMouseLeave={handleCanvasMouseLeave}
               onWheel={handleCanvasWheel}
               onContextMenu={handleContextMenu}
+              // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
               style={{
                 cursor: isPanning
                   ? "grabbing"
@@ -1709,6 +1681,7 @@ export function TilemapEditorView() {
             >
               {tilemap ? (
                 <div
+                  // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                   style={{
                     transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
                     transformOrigin: "0 0",
@@ -1716,11 +1689,12 @@ export function TilemapEditorView() {
                 >
                   <canvas
                     ref={canvasRef}
+                    // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                     style={{ imageRendering: "pixelated" }}
                   />
                 </div>
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-gray-500">
+                <div className="absolute inset-0 flex items-center justify-center text-muted">
                   <div className="text-center">
                     <div className="text-4xl mb-2">🗺️</div>
                     <div className="text-sm">No tilemap</div>
@@ -1787,11 +1761,7 @@ export function TilemapEditorView() {
                   {autoTileRules.map((rule) => (
                     <div
                       key={rule.id}
-                      className={`flex items-center justify-between p-1 text-xs cursor-pointer rounded ${
-                        activeAutoTileRule?.id === rule.id
-                          ? "bg-blue-100 dark:bg-blue-900 border border-blue-500"
-                          : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                      }`}
+                      className={cn("flex items-center justify-between p-1 text-xs cursor-pointer rounded", activeAutoTileRule?.id === rule.id ? "bg-brand-100 border border-brand-500" : "hover:bg-muted-surface ")}
                       onClick={() => {
                         setActiveAutoTileRule(
                           activeAutoTileRule?.id === rule.id ? null : rule
@@ -1803,7 +1773,7 @@ export function TilemapEditorView() {
                     >
                       <span>🌿 {rule.name}</span>
                       <button
-                        className="text-red-500 hover:text-red-700 px-1"
+                        className="text-error hover:text-error px-1"
                         onClick={(e) => {
                           e.stopPropagation();
                           deleteAutoTileRule(rule.id);
@@ -1815,7 +1785,7 @@ export function TilemapEditorView() {
                   ))}
                 </div>
               ) : (
-                <div className="text-xs text-gray-500 text-center py-1">
+                <div className="text-xs text-muted text-center py-1">
                   No auto-tile rules
                 </div>
               )}
@@ -1840,7 +1810,7 @@ export function TilemapEditorView() {
               >
                 ➕ Create from 4x4 Selection
               </button>
-              <div className="text-[10px] text-gray-500 text-center">
+              <div className="text-[10px] text-muted text-center">
                 เลือก 16 tiles (4x4) แล้วกด Create
               </div>
             </div>
@@ -1852,7 +1822,7 @@ export function TilemapEditorView() {
               <span className="ie-groupbox-title flex items-center justify-between">
                 <span>🗺️ Mini-map</span>
                 <button
-                  className="text-xs text-gray-500 hover:text-gray-700"
+                  className="text-xs text-muted hover:text-foreground"
                   onClick={() => setShowMinimap(false)}
                 >
                   ✕
@@ -1862,13 +1832,14 @@ export function TilemapEditorView() {
                 <canvas
                   ref={minimapCanvasRef}
                   className="w-full"
+                  // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                   style={{
                     maxHeight: 100,
                     imageRendering: "pixelated",
                     backgroundColor: tilemap.backgroundColor || "#1a1a2e",
                   }}
                 />
-                <div className="text-[10px] text-gray-500 text-center mt-1">
+                <div className="text-[10px] text-muted text-center mt-1">
                   {tilemap.width}x{tilemap.height} tiles
                 </div>
               </div>
@@ -1891,7 +1862,8 @@ export function TilemapEditorView() {
                 {/* Tile Preview */}
                 <div className="flex justify-center mb-2">
                   <div
-                    className="border border-green-500 bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%228%22%20height%3D%228%22%3E%3Crect%20width%3D%224%22%20height%3D%224%22%20fill%3D%22%23444%22%2F%3E%3Crect%20x%3D%224%22%20y%3D%224%22%20width%3D%224%22%20height%3D%224%22%20fill%3D%22%23444%22%2F%3E%3C%2Fsvg%3E')]"
+                    className="border border-success bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%228%22%20height%3D%228%22%3E%3Crect%20width%3D%224%22%20height%3D%224%22%20fill%3D%22%23444%22%2F%3E%3Crect%20x%3D%224%22%20y%3D%224%22%20width%3D%224%22%20height%3D%224%22%20fill%3D%22%23444%22%2F%3E%3C%2Fsvg%3E')]"
+                    // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                     style={{
                       width: activeTileset.tileWidth * 3,
                       height: activeTileset.tileHeight * 3,
@@ -1921,7 +1893,7 @@ export function TilemapEditorView() {
                   />
                 </div>
                 {/* Tile Info */}
-                <div className="text-xs text-center text-gray-600 dark:text-gray-400">
+                <div className="text-xs text-center text-muted">
                   <div>ID: {selectedTiles[0]}</div>
                   <div>
                     Grid: ({selectedTiles[0] % activeTileset.columns},{" "}
@@ -1930,7 +1902,7 @@ export function TilemapEditorView() {
                 </div>
                 {/* Tile Properties */}
                 {activeTileset.tiles[selectedTiles[0]] && (
-                  <div className="mt-2 pt-2 border-t border-gray-300 dark:border-gray-600">
+                  <div className="mt-2 pt-2 border-t border-border">
                     <div className="text-[10px] font-bold mb-1 text-center">
                       Properties
                     </div>
@@ -2030,13 +2002,13 @@ export function TilemapEditorView() {
                 {recentProjects.slice(0, 5).map((project, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-1.5 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
+                    className="flex items-center justify-between p-1.5 cursor-pointer hover:bg-muted-surface"
                     title={project.path}
                   >
                     <span className="text-xs truncate flex-1">
                       📄 {project.name}
                     </span>
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-[10px] text-muted">
                       {new Date(project.updatedAt).toLocaleDateString()}
                     </span>
                   </div>
@@ -2055,12 +2027,12 @@ export function TilemapEditorView() {
                   return (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-1.5 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
+                      className="flex items-center justify-between p-1.5 cursor-pointer hover:bg-muted-surface"
                       title={`Load ${name}`}
                     >
                       <span className="text-xs truncate flex-1">📄 {name}</span>
                       {project?.updatedAt && (
-                        <span className="text-[10px] text-gray-400">
+                        <span className="text-[10px] text-muted">
                           {new Date(project.updatedAt).toLocaleTimeString()}
                         </span>
                       )}
@@ -2086,7 +2058,7 @@ export function TilemapEditorView() {
                   Enable auto-save
                 </label>
                 {lastSaveTime && (
-                  <div className="text-[10px] text-gray-500">
+                  <div className="text-[10px] text-muted">
                     Last saved: {lastSaveTime.toLocaleTimeString()}
                   </div>
                 )}
@@ -2104,22 +2076,18 @@ export function TilemapEditorView() {
                 {tilemap.tilesets.map((ts) => (
                   <div
                     key={ts.id}
-                    className={`flex items-center justify-between p-1.5 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 ${
-                      activeTileset?.id === ts.id
-                        ? "bg-blue-100 dark:bg-blue-900"
-                        : ""
-                    }`}
+                    className={cn("flex items-center justify-between p-1.5 cursor-pointer hover:bg-muted-surface", activeTileset?.id === ts.id ? "bg-brand-100 " : "")}
                     onClick={() => setActiveTileset(ts.id)}
                   >
                     <span className="text-xs truncate flex-1">
                       {ts.name}
-                      <span className="text-gray-500 ml-1">
+                      <span className="text-muted ml-1">
                         ({ts.columns}x{ts.rows})
                       </span>
                     </span>
                     {tilemap.tilesets.length > 1 && (
                       <button
-                        className="text-red-500 hover:text-red-700 px-1 text-xs"
+                        className="text-error hover:text-error px-1 text-xs"
                         onClick={(e) => {
                           e.stopPropagation();
                           removeTileset(ts.id);
@@ -2146,7 +2114,7 @@ export function TilemapEditorView() {
       {/* New Tilemap Dialog */}
       {showNewDialog && (
         <Portal>
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-overlay flex items-center justify-center z-50">
             <div className="ie-window w-80 h-fit">
               <div className="ie-titlebar">
                 <span className="ie-titlebar-text">New Tilemap</span>
@@ -2218,7 +2186,7 @@ export function TilemapEditorView() {
                         }}
                       >
                         {template.icon} {template.name}
-                        <span className="text-gray-400 ml-1 text-[10px]">
+                        <span className="text-muted ml-1 text-[10px]">
                           {template.width}x{template.height}
                         </span>
                       </button>
@@ -2288,7 +2256,7 @@ export function TilemapEditorView() {
       {/* Tileset Import Dialog */}
       {showTilesetDialog && (
         <Portal>
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-overlay flex items-center justify-center z-50">
             <div className="ie-window w-96 h-fit">
               <div className="ie-titlebar">
                 <span className="ie-titlebar-text">Import Tileset</span>
@@ -2306,11 +2274,12 @@ export function TilemapEditorView() {
               <div className="ie-window-body p-3 space-y-3">
                 {/* Preview */}
                 {tilesetPreviewUrl && (
-                  <div className="ie-panel-inset p-2 max-h-48 overflow-auto bg-[#1a1a2e]">
+                  <div className="ie-panel-inset p-2 max-h-48 overflow-auto bg-canvas">
                     <img
                       src={tilesetPreviewUrl}
                       alt="Tileset preview"
                       className="max-w-full"
+                      // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                       style={{ imageRendering: "pixelated" }}
                     />
                   </div>
@@ -2381,7 +2350,7 @@ export function TilemapEditorView() {
       {/* Tile Group Dialog */}
       {showTileGroupDialog && activeTileset && (
         <Portal>
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-overlay flex items-center justify-center z-50">
             <div className="ie-window w-[600px] h-fit max-h-[90vh] overflow-auto">
               <div className="ie-titlebar">
                 <span className="ie-titlebar-text">📦 Create Tile Group</span>
@@ -2402,25 +2371,19 @@ export function TilemapEditorView() {
                 {/* Mode Selection */}
                 <div className="flex gap-1">
                   <button
-                    className={`ie-button flex-1 text-xs ${
-                      tileGroupMode === "simple" ? "ie-button-active" : ""
-                    }`}
+                    className={cn("ie-button flex-1 text-xs", tileGroupMode === "simple" ? "ie-button-active" : "")}
                     onClick={() => setTileGroupMode("simple")}
                   >
                     📦 Simple
                   </button>
                   <button
-                    className={`ie-button flex-1 text-xs ${
-                      tileGroupMode === "building" ? "ie-button-active" : ""
-                    }`}
+                    className={cn("ie-button flex-1 text-xs", tileGroupMode === "building" ? "ie-button-active" : "")}
                     onClick={() => setTileGroupMode("building")}
                   >
                     🏠 Building
                   </button>
                   <button
-                    className={`ie-button flex-1 text-xs ${
-                      tileGroupMode === "freeform" ? "ie-button-active" : ""
-                    }`}
+                    className={cn("ie-button flex-1 text-xs", tileGroupMode === "freeform" ? "ie-button-active" : "")}
                     onClick={() => {
                       setTileGroupMode("freeform");
                       // Initialize freeform tiles grid
@@ -2436,7 +2399,7 @@ export function TilemapEditorView() {
                 </div>
 
                 {/* Instructions */}
-                <div className="text-xs text-gray-600 dark:text-gray-400 p-2 bg-blue-50 dark:bg-blue-900/30 rounded">
+                <div className="text-xs text-muted p-2 bg-brand-50 rounded">
                   {tileGroupMode === "simple" && (
                     <>💡 ลากเมาส์บน Tileset เพื่อเลือก tiles ที่ต้องการ</>
                   )}
@@ -2463,9 +2426,7 @@ export function TilemapEditorView() {
                     {(["top", "middle", "bottom"] as const).map((part) => (
                       <button
                         key={part}
-                        className={`ie-button flex-1 text-xs ${
-                          currentBuildingPart === part ? "ie-button-active" : ""
-                        }`}
+                        className={cn("ie-button flex-1 text-xs", currentBuildingPart === part ? "ie-button-active" : "")}
                         onClick={() => setCurrentBuildingPart(part)}
                       >
                         {part === "top" && "🔺 หลังคา"}
@@ -2557,6 +2518,7 @@ export function TilemapEditorView() {
                         ref={tileGroupCanvasRef}
                         width={activeTileset.columns * activeTileset.tileWidth}
                         height={activeTileset.rows * activeTileset.tileHeight}
+                        // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                         style={{
                           imageRendering: "pixelated",
                           cursor: "crosshair",
@@ -2565,7 +2527,8 @@ export function TilemapEditorView() {
                       {/* Simple mode selection overlay */}
                       {tileGroupMode === "simple" && tileGroupSelection && (
                         <div
-                          className="absolute border-2 border-blue-500 bg-blue-500/20 pointer-events-none"
+                          className="absolute border-2 border-brand-500 bg-brand-500/20 pointer-events-none"
+                          // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                           style={{
                             left:
                               Math.min(
@@ -2599,7 +2562,8 @@ export function TilemapEditorView() {
                         <>
                           {buildingParts.top && (
                             <div
-                              className="absolute border-2 border-red-500 bg-red-500/20 pointer-events-none"
+                              className="absolute border-2 border-error bg-error/20 pointer-events-none"
+                              // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                               style={{
                                 left:
                                   Math.min(
@@ -2627,14 +2591,15 @@ export function TilemapEditorView() {
                                   activeTileset.tileHeight,
                               }}
                             >
-                              <span className="absolute -top-5 left-0 text-xs bg-red-500 text-white px-1 rounded">
+                              <span className="absolute -top-5 left-0 text-xs bg-error text-on-brand px-1 rounded">
                                 🔺 Top
                               </span>
                             </div>
                           )}
                           {buildingParts.middle && (
                             <div
-                              className="absolute border-2 border-yellow-500 bg-yellow-500/20 pointer-events-none"
+                              className="absolute border-2 border-warning bg-warning/20 pointer-events-none"
+                              // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                               style={{
                                 left:
                                   Math.min(
@@ -2662,14 +2627,15 @@ export function TilemapEditorView() {
                                   activeTileset.tileHeight,
                               }}
                             >
-                              <span className="absolute -top-5 left-0 text-xs bg-yellow-500 text-white px-1 rounded">
+                              <span className="absolute -top-5 left-0 text-xs bg-warning text-on-brand px-1 rounded">
                                 🔲 Middle
                               </span>
                             </div>
                           )}
                           {buildingParts.bottom && (
                             <div
-                              className="absolute border-2 border-green-500 bg-green-500/20 pointer-events-none"
+                              className="absolute border-2 border-success bg-success/20 pointer-events-none"
+                              // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                               style={{
                                 left:
                                   Math.min(
@@ -2697,7 +2663,7 @@ export function TilemapEditorView() {
                                   activeTileset.tileHeight,
                               }}
                             >
-                              <span className="absolute -top-5 left-0 text-xs bg-green-500 text-white px-1 rounded">
+                              <span className="absolute -top-5 left-0 text-xs bg-success text-on-brand px-1 rounded">
                                 🔻 Bottom
                               </span>
                             </div>
@@ -2826,7 +2792,7 @@ export function TilemapEditorView() {
                       <span className="ie-groupbox-title">
                         Select Tiles (คลิก = 1 tile, ลาก = หลาย tiles)
                         {freeformAreaSelection && (
-                          <span className="ml-2 text-blue-600">
+                          <span className="ml-2 text-brand-600">
                             [
                             {Math.abs(
                               freeformAreaSelection.endX -
@@ -2888,6 +2854,7 @@ export function TilemapEditorView() {
                             activeTileset.columns * activeTileset.tileWidth
                           }
                           height={activeTileset.rows * activeTileset.tileHeight}
+                          // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                           style={{
                             imageRendering: "pixelated",
                             cursor: "crosshair",
@@ -2896,7 +2863,8 @@ export function TilemapEditorView() {
                         {/* Area selection overlay */}
                         {freeformAreaSelection && (
                           <div
-                            className="absolute border-2 border-blue-500 bg-blue-500/30 pointer-events-none"
+                            className="absolute border-2 border-brand-500 bg-brand-500/30 pointer-events-none"
+                            // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                             style={{
                               left:
                                 Math.min(
@@ -2930,22 +2898,14 @@ export function TilemapEditorView() {
                       {freeformAreaSelection && (
                         <div className="flex gap-1 mt-2">
                           <button
-                            className={`ie-button flex-1 text-xs ${
-                              freeformArrangeMode === "normal"
-                                ? "ie-button-active"
-                                : ""
-                            }`}
+                            className={cn("ie-button flex-1 text-xs", freeformArrangeMode === "normal" ? "ie-button-active" : "")}
                             onClick={() => setFreeformArrangeMode("normal")}
                             title="วางตามต้นฉบับ"
                           >
                             📋 ตามต้นฉบับ
                           </button>
                           <button
-                            className={`ie-button flex-1 text-xs ${
-                              freeformArrangeMode === "transpose"
-                                ? "ie-button-active"
-                                : ""
-                            }`}
+                            className={cn("ie-button flex-1 text-xs", freeformArrangeMode === "transpose" ? "ie-button-active" : "")}
                             onClick={() => setFreeformArrangeMode("transpose")}
                             title="สลับแถว↔คอลัมน์ (เหมาะสำหรับบ้าน)"
                           >
@@ -2956,7 +2916,7 @@ export function TilemapEditorView() {
                       {/* Auto Draw Button */}
                       {freeformAreaSelection && (
                         <button
-                          className="ie-button w-full mt-2 text-sm font-bold bg-purple-600 text-white hover:bg-purple-700"
+                          className="ie-button w-full mt-2 text-sm font-bold bg-accent-500 text-on-brand hover:bg-accent-600"
                           onClick={() => {
                             if (!freeformAreaSelection) return;
                             const minX = Math.min(
@@ -3070,7 +3030,7 @@ export function TilemapEditorView() {
                         </button>
                         {freeformRefImage && (
                           <button
-                            className="ie-button text-xs text-red-500"
+                            className="ie-button text-xs text-error"
                             onClick={() => setFreeformRefImage(null)}
                           >
                             ✕ ลบ
@@ -3186,20 +3146,20 @@ export function TilemapEditorView() {
                               ↓
                             </button>
                             <button
-                              className="ie-button px-2 py-0.5 text-red-500"
+                              className="ie-button px-2 py-0.5 text-error"
                               onClick={() =>
                                 setFreeformRefOffset({ x: 0, y: 0 })
                               }
                             >
                               Reset
                             </button>
-                            <span className="text-gray-500">
+                            <span className="text-muted">
                               ({freeformRefOffset.x}, {freeformRefOffset.y})
                             </span>
                           </div>
                           {/* Auto Draw from Reference Image */}
                           <button
-                            className="ie-button w-full mt-2 text-sm font-bold bg-green-600 text-white hover:bg-green-700"
+                            className="ie-button w-full mt-2 text-sm font-bold bg-success text-on-brand hover:bg-success"
                             onClick={async () => {
                               if (!freeformRefImage || !activeTileset?.image)
                                 return;
@@ -3399,6 +3359,7 @@ export function TilemapEditorView() {
                             src={freeformRefImage}
                             alt="Reference"
                             className="absolute pointer-events-none z-10"
+                            // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                             style={{
                               opacity: freeformRefOpacity,
                               transform: `translate(${freeformRefOffset.x}px, ${freeformRefOffset.y}px) scale(${freeformRefScale})`,
@@ -3408,7 +3369,8 @@ export function TilemapEditorView() {
                           />
                         )}
                         <div
-                          className="grid gap-0 border border-gray-400 relative"
+                          className="grid gap-0 border border-border relative"
+                          // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                           style={{
                             gridTemplateColumns: `repeat(${freeformSize.width}, ${activeTileset.tileWidth}px)`,
                           }}
@@ -3417,7 +3379,8 @@ export function TilemapEditorView() {
                             row.map((tileId, x) => (
                               <div
                                 key={`${x}-${y}`}
-                                className="border border-gray-300 dark:border-gray-600 cursor-pointer hover:bg-blue-200/50 relative z-20"
+                                className="border border-border cursor-pointer hover:bg-brand-200/50 relative z-20"
+                                // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                                 style={{
                                   width: activeTileset.tileWidth,
                                   height: activeTileset.tileHeight,
@@ -3465,7 +3428,7 @@ export function TilemapEditorView() {
 
                 {/* Selection Info */}
                 {tileGroupMode === "simple" && tileGroupSelection && (
-                  <div className="text-xs text-green-600 dark:text-green-400 p-2 bg-green-50 dark:bg-green-900/30 rounded">
+                  <div className="text-xs text-success p-2 bg-success-surface rounded">
                     ✓ Selected:{" "}
                     {Math.abs(
                       tileGroupSelection.endX - tileGroupSelection.startX
@@ -3478,11 +3441,9 @@ export function TilemapEditorView() {
                   </div>
                 )}
                 {tileGroupMode === "building" && (
-                  <div className="text-xs p-2 bg-gray-50 dark:bg-gray-800 rounded space-y-1">
+                  <div className="text-xs p-2 bg-muted-surface rounded space-y-1">
                     <div
-                      className={
-                        buildingParts.top ? "text-green-600" : "text-gray-400"
-                      }
+                      className={cn(buildingParts.top ? "text-success" : "text-muted")}
                     >
                       🔺 หลังคา:{" "}
                       {buildingParts.top
@@ -3498,11 +3459,7 @@ export function TilemapEditorView() {
                         : "ยังไม่เลือก"}
                     </div>
                     <div
-                      className={
-                        buildingParts.middle
-                          ? "text-green-600"
-                          : "text-gray-400"
-                      }
+                      className={cn(buildingParts.middle ? "text-success" : "text-muted")}
                     >
                       🔲 ชั้นกลาง:{" "}
                       {buildingParts.middle
@@ -3520,11 +3477,7 @@ export function TilemapEditorView() {
                         : "ยังไม่เลือก"}
                     </div>
                     <div
-                      className={
-                        buildingParts.bottom
-                          ? "text-green-600"
-                          : "text-gray-400"
-                      }
+                      className={cn(buildingParts.bottom ? "text-success" : "text-muted")}
                     >
                       🔻 ฐาน:{" "}
                       {buildingParts.bottom
@@ -3737,7 +3690,7 @@ export function TilemapEditorView() {
       {/* Export Dialog */}
       {showExportDialog && (
         <Portal>
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-overlay flex items-center justify-center z-50">
             <div className="ie-window w-96 h-fit">
               <div className="ie-titlebar">
                 <span className="ie-titlebar-text">Export Tilemap</span>
@@ -3793,11 +3746,7 @@ export function TilemapEditorView() {
                     ].map((format) => (
                       <label
                         key={format.value}
-                        className={`flex items-start gap-2 p-2 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                          exportFormat === format.value
-                            ? "bg-blue-100 dark:bg-blue-900"
-                            : ""
-                        }`}
+                        className={cn("flex items-start gap-2 p-2 rounded cursor-pointer hover:bg-muted-surface", exportFormat === format.value ? "bg-brand-100 " : "")}
                       >
                         <input
                           type="radio"
@@ -3815,7 +3764,7 @@ export function TilemapEditorView() {
                           <div className="text-sm font-medium">
                             {format.label}
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-muted">
                             {format.desc}
                           </div>
                         </div>
@@ -3846,7 +3795,7 @@ export function TilemapEditorView() {
       {/* Keyboard Shortcuts Help Dialog */}
       {showShortcutsDialog && (
         <Portal>
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-overlay flex items-center justify-center z-50">
             <div className="ie-window w-96 max-h-[80vh] overflow-hidden">
               <div className="ie-titlebar">
                 <span className="ie-titlebar-text">⌨️ Keyboard Shortcuts</span>

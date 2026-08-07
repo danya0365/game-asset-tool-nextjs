@@ -1,72 +1,96 @@
-/* 🎨 Theme Tokens */
-@theme {
-  /* Custom Font Variables */
-  --font-sans: "MiSans Thai", "MiSans Thai Variable", system-ui, -apple-system,
-    sans-serif;
-  --font-mono: "MiSans Thai", "MiSans Thai Variable", system-ui, -apple-system,
-    monospace;
-  --font-playfair: var(--font-playfair), "MiSans Thai";
+/* ============================================
+   Tailwind v4 theme mapping
+   RULE: var() only here — ห้าม hardcode สีในไฟล์นี้
+   ค่าจริงของ token อยู่ใน themes/*.css ต่อ [data-theme]
+   ============================================ */
 
-  /* Light defaults */
-  --color-background: #ffffff;
-  --color-foreground: #171717;
-  --color-surface: #ffffff;
-  --color-on-surface: #000000;
+@custom-variant dark (&:is(.dark *));
 
-  /* Status colors */
-  --color-success: #10b981;
-  --color-success-light: #d1fae5;
-  --color-success-dark: #047857;
-  --color-warning: #f59e0b;
-  --color-warning-light: #fef3c7;
-  --color-warning-dark: #d97706;
-  --color-error: #ef4444;
-  --color-error-light: #fee2e2;
-  --color-error-dark: #dc2626;
-  --color-info: #3b82f6;
-  --color-info-light: #dbeafe;
-  --color-info-dark: #1d4ed8;
+@theme inline {
+  /* ── Fonts ───────────────────────────────────────────── */
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-heading-family);
+  --font-mono: var(--font-mono-family);
 
-  /* UI Colors - Gray scale */
-  --color-muted: #6b7280;
-  --color-muted-light: #f9fafb;
-  --color-muted-dark: #374151;
-  --color-border: #e5e7eb;
-  --color-border-light: #f3f4f6;
-  --color-border-dark: #374151;
+  /* ── Surface / semantic ──────────────────────────────── */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-surface: var(--muted-surface);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
 
-  /* Input colors */
-  --color-input: #d1d5db;
-  --color-input-bg: #ffffff;
-  --color-input-focus: #ffffff;
-  --color-input-placeholder: #9ca3af;
-  --color-input-border: #d1d5db;
+  /* ── IE5 / Win98 chrome (skin-specific) ──────────────────
+     หน้าต่าง เมนู ทูลบาร์ และขอบ 3D bevel ของ skin
+     ธีมอื่นในอนาคตแค่ให้ค่าใหม่ — component ไม่ต้องแก้ */
+  --color-chrome: var(--chrome);
+  --color-chrome-hover: var(--chrome-hover);
+  --color-chrome-active: var(--chrome-active);
+  --color-chrome-pressed: var(--chrome-pressed);
+  --color-bevel-light: var(--bevel-light);
+  --color-bevel-shadow: var(--bevel-shadow);
+  --color-inset: var(--inset);
+  --color-tooltip: var(--tooltip);
+  --color-tooltip-foreground: var(--tooltip-foreground);
 
-  /* Alert colors */
-  --color-red-50: #fef2f2;
-  --color-red-100: #fee2e2;
-  --color-red-200: #fecaca;
-  --color-red-700: #b91c1c;
-  --color-green-50: #f0fdf4;
-  --color-green-100: #dcfce7;
-  --color-green-200: #bbf7d0;
-  --color-green-300: #86efac;
-  --color-green-400: #4ade80;
-  --color-green-500: #22c55e;
-  --color-green-600: #16a34a;
-  --color-green-700: #15803d;
-  --color-green-800: #166534;
-  --color-green-900: #14532d;
+  /* selection = แถบไฮไลต์ของ Win98 (เมนู/listview/titlebar)
+     แยกจาก brand ramp เพราะต้องเป็นสีเข้ม+ตัวหนังสือขาว ทั้ง light และ dark */
+  --color-selection: var(--selection);
+  --color-selection-foreground: var(--selection-foreground);
 
-  /* Additional gray variants for complete theme system */
-  --color-gray-50: #f9fafb;
-  --color-gray-100: #f3f4f6;
-  --color-gray-200: #e5e7eb;
-  --color-gray-300: #d1d5db;
-  --color-gray-400: #9ca3af;
-  --color-gray-500: #6b7280;
-  --color-gray-600: #4b5563;
-  --color-gray-700: #374151;
-  --color-gray-800: #1f2937;
-  --color-gray-900: #111827;
+  /* ── Brand ramp (Win98 navy) ─────────────────────────── */
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+
+  /* ตัวอักษร/ไอคอนบน "พื้นสีอิ่มตัว" — brand-500/600 และ status (success/warning/error)
+     แยกจาก ramp เพราะทุกสีเหล่านั้นพลิกจากเข้ม→อ่อนตอน dark ถ้าไม่แยกปุ่มจะอ่านไม่ออก */
+  --color-on-brand: var(--on-brand);
+
+  /* ── Accent (Win98 teal) ─────────────────────────────── */
+  --color-accent-100: var(--accent-100);
+  --color-accent-400: var(--accent-400);
+  --color-accent-500: var(--accent-500);
+  --color-accent-600: var(--accent-600);
+
+  /* ── Status ──────────────────────────────────────────── */
+  --color-success: var(--success);
+  --color-success-surface: var(--success-surface);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+  --color-error: var(--error);
+  --color-error-surface: var(--error-surface);
+
+  /* ── Canvas (พื้นที่วาด/พรีวิวภาพของ tool) ───────────── */
+  --color-canvas: var(--canvas);
+  --color-canvas-grid: var(--canvas-grid);
+  --color-overlay: var(--overlay);
+
+  /* ── Terminal (บล็อกแสดงผลลัพธ์/โค้ดแบบจอเขียว) ──────── */
+  --color-terminal: var(--terminal);
+  --color-terminal-foreground: var(--terminal-foreground);
+
+  /* ── Radius ──────────────────────────────────────────────
+     skin base ตั้งชื่อ --sk-radius-* เพราะ --radius-* ชนกับ namespace ของ Tailwind
+     IE5 = มุมเหลี่ยมทั้งหมด (0) · ธีมใหม่เปลี่ยนค่าได้โดยไม่แตะ component */
+  --radius-sm: var(--sk-radius-sm); /* → rounded-sm */
+  --radius-md: var(--sk-radius-md); /* → rounded-md */
+  --radius-lg: var(--sk-radius-lg); /* → rounded-lg */
+  --radius-xl: var(--sk-radius-xl); /* → rounded-xl */
+  --radius-pill: var(--sk-radius-pill); /* → rounded-pill */
+
+  /* ── Shadow ──────────────────────────────────────────── */
+  --shadow-xs: var(--sk-shadow-xs); /* → shadow-xs */
+  --shadow-sm: var(--sk-shadow-sm); /* → shadow-sm */
+  --shadow-md: var(--sk-shadow-md); /* → shadow-md */
+  --shadow-btn: var(--sk-shadow-btn); /* → shadow-btn (composite: ปุ่มกดจม) */
 }

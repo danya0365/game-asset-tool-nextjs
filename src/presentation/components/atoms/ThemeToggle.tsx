@@ -3,23 +3,24 @@
 import { useThemeStore } from "@/src/presentation/stores/themeStore";
 
 export function ThemeToggle() {
-  const { theme, toggleTheme } = useThemeStore();
+  const dark = useThemeStore((s) => s.dark);
+  const toggleDark = useThemeStore((s) => s.toggleDark);
 
   return (
     <button
-      onClick={toggleTheme}
+      onClick={toggleDark}
       className="ie-button ie-button-sm flex items-center gap-1"
-      title={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
+      title={dark ? "Switch to Light Mode" : "Switch to Dark Mode"}
     >
-      {theme === "light" ? (
-        <>
-          <span className="text-xs">🌙</span>
-          <span className="hidden sm:inline text-xs">Dark</span>
-        </>
-      ) : (
+      {dark ? (
         <>
           <span className="text-xs">☀️</span>
           <span className="hidden sm:inline text-xs">Light</span>
+        </>
+      ) : (
+        <>
+          <span className="text-xs">🌙</span>
+          <span className="hidden sm:inline text-xs">Dark</span>
         </>
       )}
     </button>

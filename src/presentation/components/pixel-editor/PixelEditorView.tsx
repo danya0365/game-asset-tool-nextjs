@@ -1,4 +1,5 @@
 "use client";
+import { cn } from "@/src/presentation/lib/cn";
 
 import {
   MainLayout,
@@ -618,36 +619,28 @@ export function PixelEditorView() {
             <span className="ie-groupbox-title">Tools</span>
             <div className="grid grid-cols-4 lg:grid-cols-2 gap-1 -mt-2">
               <button
-                className={`ie-button ie-button-sm ${
-                  activeTool === "pencil" ? "ie-button-active" : ""
-                }`}
+                className={cn("ie-button ie-button-sm", activeTool === "pencil" ? "ie-button-active" : "")}
                 onClick={() => setActiveTool("pencil")}
                 title="Pencil (P)"
               >
                 ✏️
               </button>
               <button
-                className={`ie-button ie-button-sm ${
-                  activeTool === "eraser" ? "ie-button-active" : ""
-                }`}
+                className={cn("ie-button ie-button-sm", activeTool === "eraser" ? "ie-button-active" : "")}
                 onClick={() => setActiveTool("eraser")}
                 title="Eraser (E)"
               >
                 🧹
               </button>
               <button
-                className={`ie-button ie-button-sm ${
-                  activeTool === "fill" ? "ie-button-active" : ""
-                }`}
+                className={cn("ie-button ie-button-sm", activeTool === "fill" ? "ie-button-active" : "")}
                 onClick={() => setActiveTool("fill")}
                 title="Fill (G)"
               >
                 🪣
               </button>
               <button
-                className={`ie-button ie-button-sm ${
-                  activeTool === "picker" ? "ie-button-active" : ""
-                }`}
+                className={cn("ie-button ie-button-sm", activeTool === "picker" ? "ie-button-active" : "")}
                 onClick={() => setActiveTool("picker")}
                 title="Color Picker (I)"
               >
@@ -663,6 +656,7 @@ export function PixelEditorView() {
               <div className="relative">
                 <div
                   className="w-10 h-10 ie-panel-inset cursor-pointer"
+                  // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                   style={{ backgroundColor: primaryColor }}
                   title="Primary Color (Left Click)"
                 />
@@ -676,6 +670,7 @@ export function PixelEditorView() {
               <div className="relative">
                 <div
                   className="w-10 h-10 ie-panel-inset cursor-pointer"
+                  // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                   style={{ backgroundColor: secondaryColor }}
                   title="Secondary Color (Right Click)"
                 />
@@ -763,7 +758,7 @@ export function PixelEditorView() {
             <div className="space-y-1 -mt-2">
               <div className="flex gap-1">
                 <div className="flex-1">
-                  <label className="text-xs text-gray-600 dark:text-gray-400">
+                  <label className="text-xs text-muted">
                     W
                   </label>
                   <input
@@ -781,7 +776,7 @@ export function PixelEditorView() {
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="text-xs text-gray-600 dark:text-gray-400">
+                  <label className="text-xs text-muted">
                     H
                   </label>
                   <input
@@ -809,7 +804,7 @@ export function PixelEditorView() {
             <span className="ie-groupbox-title">
               Canvas ({settings.width}×{settings.height})
               {cursorPosition && (
-                <span className="text-gray-500 ml-2">
+                <span className="text-muted ml-2">
                   [{cursorPosition.x}, {cursorPosition.y}]
                 </span>
               )}
@@ -852,9 +847,7 @@ export function PixelEditorView() {
               {[...layers].reverse().map((layer) => (
                 <div
                   key={layer.id}
-                  className={`ie-listview-item flex items-center gap-1 ${
-                    activeLayerId === layer.id ? "selected" : ""
-                  }`}
+                  className={cn("ie-listview-item flex items-center gap-1", activeLayerId === layer.id ? "selected" : "")}
                   onClick={() => setActiveLayer(layer.id)}
                 >
                   <button
@@ -893,7 +886,7 @@ export function PixelEditorView() {
             {/* Layer opacity */}
             {activeLayerId && (
               <div className="mt-1">
-                <label className="text-xs text-gray-600 dark:text-gray-400 flex justify-between">
+                <label className="text-xs text-muted flex justify-between">
                   <span>Opacity</span>
                   <span>
                     {layers.find((l) => l.id === activeLayerId)?.opacity}%
@@ -917,7 +910,7 @@ export function PixelEditorView() {
 
           {/* Info */}
           <div className="ie-panel-inset p-2 mt-1">
-            <div className="text-xs text-gray-600 dark:text-gray-400">
+            <div className="text-xs text-muted">
               <strong>Tips:</strong>
               <ul className="mt-1 space-y-0.5 list-disc list-inside">
                 <li>Scroll to zoom</li>

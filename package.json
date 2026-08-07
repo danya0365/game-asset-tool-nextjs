@@ -9,10 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "clsx": "^2.1.1",
     "jszip": "^3.10.1",
     "next": "15.5.9",
     "react": "19.1.2",
     "react-dom": "19.1.2",
+    "tailwind-merge": "^3.6.0",
     "upng-js": "^2.1.0",
     "zustand": "^5.0.9"
   },
@@ -25,6 +27,7 @@
     "@types/upng-js": "^2.1.5",
     "eslint": "^9",
     "eslint-config-next": "15.5.7",
+    "eslint-plugin-react": "^7.37.5",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

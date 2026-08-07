@@ -1,4 +1,5 @@
 "use client";
+import { cn } from "@/src/presentation/lib/cn";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { MainLayout } from "../templates/MainLayout";
@@ -562,10 +563,11 @@ export default function SpritesheetEditorView() {
               <canvas
                 ref={canvasRef}
                 onClick={handleCanvasClick}
+                // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                 style={{ imageRendering: "pixelated", cursor: "crosshair" }}
               />
             ) : (
-              <div className="flex items-center justify-center h-full text-gray-500">
+              <div className="flex items-center justify-center h-full text-muted">
                 <div className="text-center">
                   <div className="text-4xl mb-2">🎬</div>
                   <p>Load a spritesheet to begin</p>
@@ -585,10 +587,11 @@ export default function SpritesheetEditorView() {
                   {currentAnimation ? (
                     <canvas
                       ref={previewCanvasRef}
+                      // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                       style={{ imageRendering: "pixelated" }}
                     />
                   ) : (
-                    <span className="text-gray-400 text-xs">No animation</span>
+                    <span className="text-muted text-xs">No animation</span>
                   )}
                 </div>
 
@@ -622,7 +625,7 @@ export default function SpritesheetEditorView() {
                 </div>
 
                 {currentAnimation && (
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-muted">
                     Frame: {currentFrameIndex + 1} /{" "}
                     {currentAnimation.frames.length}
                   </div>
@@ -691,7 +694,8 @@ export default function SpritesheetEditorView() {
                       .map((frame, idx) => (
                         <div
                           key={frame.id}
-                          className="w-8 h-8 border border-blue-400 bg-gray-800 relative"
+                          className="w-8 h-8 border border-brand-400 bg-terminal relative"
+                          // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                           style={{
                             backgroundImage: spritesheetSrc
                               ? `url(${spritesheetSrc})`
@@ -700,14 +704,14 @@ export default function SpritesheetEditorView() {
                             imageRendering: "pixelated",
                           }}
                         >
-                          <span className="absolute bottom-0 right-0 text-[8px] bg-black/50 text-white px-0.5">
+                          <span className="absolute bottom-0 right-0 text-[8px] bg-overlay text-on-brand px-0.5">
                             {idx + 1}
                           </span>
                         </div>
                       ))}
                   </div>
                 ) : (
-                  <div className="text-xs text-gray-400 text-center py-2">
+                  <div className="text-xs text-muted text-center py-2">
                     Click frames on spritesheet to select
                     <br />
                     (Shift+Click for multi-select)
@@ -716,7 +720,7 @@ export default function SpritesheetEditorView() {
               </div>
               {/* Animation State Buttons */}
               <div className="mt-2 space-y-1">
-                <div className="text-[10px] text-gray-500 text-center">
+                <div className="text-[10px] text-muted text-center">
                   Create as Animation State:
                 </div>
                 <div className="grid grid-cols-4 gap-1">
@@ -747,11 +751,7 @@ export default function SpritesheetEditorView() {
                     {animations.map((anim) => (
                       <div
                         key={anim.id}
-                        className={`flex items-center justify-between p-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 ${
-                          currentAnimation?.id === anim.id
-                            ? "bg-blue-100 dark:bg-blue-900"
-                            : ""
-                        }`}
+                        className={cn("flex items-center justify-between p-1 cursor-pointer hover:bg-muted-surface", currentAnimation?.id === anim.id ? "bg-brand-100 " : "")}
                         onClick={() => {
                           setCurrentAnimation(anim);
                           setCurrentFrameIndex(0);
@@ -766,7 +766,7 @@ export default function SpritesheetEditorView() {
                           {anim.name} ({anim.frames.length}f)
                         </span>
                         <button
-                          className="ie-button px-1 text-xs text-red-500"
+                          className="ie-button px-1 text-xs text-error"
                           onClick={(e) => {
                             e.stopPropagation();
                             deleteAnimation(anim.id);
@@ -778,7 +778,7 @@ export default function SpritesheetEditorView() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-xs text-gray-400 text-center py-2">
+                  <div className="text-xs text-muted text-center py-2">
                     No animations yet
                   </div>
                 )}
@@ -805,11 +805,8 @@ export default function SpritesheetEditorView() {
                 {currentAnimation.frames.map((frame, idx) => (
                   <div
                     key={frame.id}
-                    className={`flex-shrink-0 w-12 h-12 border-2 cursor-pointer ${
-                      idx === currentFrameIndex
-                        ? "border-yellow-400"
-                        : "border-gray-400"
-                    }`}
+                    className={cn("flex-shrink-0 w-12 h-12 border-2 cursor-pointer", idx === currentFrameIndex ? "border-warning" : "border-border")}
+                    // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (สีที่ผู้ใช้เลือก / zoom / ขนาดที่คำนวณจากภาพ) เป็น token ไม่ได้
                     style={{
                       backgroundImage: spritesheetSrc
                         ? `url(${spritesheetSrc})`
@@ -820,7 +817,7 @@ export default function SpritesheetEditorView() {
                     }}
                     onClick={() => setCurrentFrameIndex(idx)}
                   >
-                    <div className="text-[8px] bg-black/50 text-white px-0.5">
+                    <div className="text-[8px] bg-overlay text-on-brand px-0.5">
                       {idx + 1}
                     </div>
                   </div>
