@@ -120,8 +120,9 @@ export default function ReducePhotoSizeView() {
   const [settings, setSettings] = useState<Settings>({
     format: "auto",
     quality: 85,
+    // จุดประสงค์ = ลดขนาดไฟล์ ไม่ใช่ลด resolution → default 100% (คงมิติเดิม)
     resizeMode: "percent",
-    percent: 50,
+    percent: 100,
     maxDim: 1024,
     pngMode: "palette",
     targetKB: 500,
