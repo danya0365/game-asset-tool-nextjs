@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# === Claude Code / AI agent config ===
+# .claude/ ตั้งใจ commit เข้า git (persona + memory + hooks + commands + rules)
+# เพื่อให้ย้ายเครื่องผ่าน git clone แล้วทำงานต่อได้ทันที — ยกเว้นไฟล์ลับ/เฉพาะเครื่อง:
+.claude/settings.local.json
+.mcp.json
+CLAUDE.local.md
