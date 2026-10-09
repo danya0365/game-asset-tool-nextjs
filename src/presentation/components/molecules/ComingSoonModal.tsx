@@ -4,12 +4,14 @@ interface ComingSoonModalProps {
   isOpen: boolean;
   onClose: () => void;
   featureName?: string;
+  detail?: string;
 }
 
 export function ComingSoonModal({
   isOpen,
   onClose,
   featureName,
+  detail,
 }: ComingSoonModalProps) {
   if (!isOpen) return null;
 
@@ -56,7 +58,7 @@ export function ComingSoonModal({
                 )}
               </p>
               <p className="text-xs text-muted">
-                โปรดรอติดตามการอัปเดตในเวอร์ชันถัดไป
+                {detail ?? "โปรดรอติดตามการอัปเดตในเวอร์ชันถัดไป"}
               </p>
             </div>
           </div>
@@ -64,12 +66,8 @@ export function ComingSoonModal({
           {/* Progress indicator */}
           <div className="mt-4">
             <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-muted">
-                Development Progress
-              </span>
-              <span className="text-muted">
-                Coming Soon...
-              </span>
+              <span className="text-muted">Development Progress</span>
+              <span className="text-muted">Coming Soon...</span>
             </div>
             <div className="ie-progress">
               <div className="ie-progress-bar w-[30%]" />

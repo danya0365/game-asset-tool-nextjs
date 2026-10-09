@@ -1,11 +1,14 @@
 ---
 name: project-overview
-description: Game Asset Tool คืออะไร — เป้าหมายผลิตภัณฑ์, ผู้ใช้, 10 tools ที่มี, architecture, stack, roadmap (อ่านตอนเริ่ม session หรือทบทวนภาพรวม)
+description: "Game Asset Tool คืออะไร — เป้าหมายผลิตภัณฑ์, ผู้ใช้, 10 tools ที่มี, architecture, stack, roadmap (อ่านตอนเริ่ม session หรือทบทวนภาพรวม)"
 metadata:
+  node_type: memory
   type: overview
   status: active
   scope: global
-  updated: 2026-08-07
+  updated: 2026-10-09
+  originSessionId: 55819481-5c1a-4c6e-839b-57631de33976
+  modified: 2026-10-09T11:35:32.658Z
 ---
 
 # Game Asset Tool — ภาพรวม
@@ -23,20 +26,21 @@ metadata:
 
 **จุดขาย:** ฟรี · ไม่ต้องติดตั้ง · privacy (ไฟล์อยู่บนเครื่อง) · export ได้หลาย engine format ในที่เดียว
 
-## Tools ที่มีวันนี้ (10 route)
+## Tools ที่มีวันนี้ (11 route · 10 ใช้ได้จริง)
 
-| Route | ทำอะไร |
-| ----- | ------ |
-| `/` | Landing — รวมทางเข้าทุก tool |
-| `/pixel-editor` | วาด pixel art ทีละจุด |
-| `/texture-editor` | แก้/ปรับแต่ง texture |
-| `/tilemap-editor` | วาง tilemap หลาย layer (tool ที่ใหญ่สุด — มี `useTilemapEditor` เป็นสมองแยก) |
-| `/spritesheet-editor` | ตัด/จัด spritesheet + animation frame |
-| `/atlas-packer` | pack sprite เป็น atlas (MaxRects) + export metadata หลาย format |
-| `/color-palette` | สร้าง/แก้ palette |
-| `/multi-export` | export ชุดใหญ่ทีเดียวหลาย format (ใช้ jszip) |
-| `/image-shuffle` | สลับ/จัดเรียงภาพ |
-| `/reduce-photo-size` | บีบขนาดไฟล์ภาพ JPEG/PNG/WebP แบบ batch (ใช้ upng-js — เป้าคือ **ลดขนาดไฟล์ ไม่ใช่ลด resolution**) |
+| Route                 | ทำอะไร                                                                                                                                                     |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                   | Landing — รวมทางเข้าทุก tool                                                                                                                               |
+| `/pixel-editor`       | วาด pixel art ทีละจุด                                                                                                                                      |
+| `/texture-editor`     | แก้/ปรับแต่ง texture                                                                                                                                       |
+| `/tilemap-editor`     | วาง tilemap หลาย layer (tool ที่ใหญ่สุด — มี `useTilemapEditor` เป็นสมองแยก)                                                                               |
+| `/spritesheet-editor` | ตัด/จัด spritesheet + animation frame                                                                                                                      |
+| `/atlas-packer`       | pack sprite เป็น atlas (MaxRects) + export metadata หลาย format                                                                                            |
+| `/color-palette`      | สร้าง/แก้ palette                                                                                                                                          |
+| `/image-shuffle`      | สลับ/จัดเรียงภาพ                                                                                                                                           |
+| `/reduce-photo-size`  | บีบขนาดไฟล์ภาพ JPEG/PNG/WebP แบบ batch (ใช้ upng-js — เป้าคือ **ลดขนาดไฟล์ ไม่ใช่ลด resolution**)                                                          |
+| `/photo-editor`       | ครอป/หมุน/ย่อขนาดภาพ + export JPEG/PNG/WebP                                                                                                                |
+| `/multi-export`       | ⚠️ **ยังใช้ไม่ได้จริง** — export ได้แค่ metadata stub, Scale/Padding/Power-of-2/Trim ไม่มีผลกับพิกเซล, ไม่มี packing (หน้าแรกซ่อนเป็น coming soon ไว้แล้ว) |
 
 > เพิ่ม tool ใหม่ → ใช้ `/new-tool` (จะสร้าง spec ใน `.claude/memory/tools/`)
 
@@ -67,7 +71,7 @@ Zustand **5** + persist · jszip · upng-js · **npm** · ไม่มี DB/aut
 
 spec ตัวจริงคือ [`TODO.md`](../../../TODO.md) (554 บรรทัด) — สถานะปัจจุบัน:
 
-1. ✅ Sprint 1–15 — 10 tools ใช้งานได้
+1. ✅ Sprint 1–15 — 10 tools ใช้งานได้ (`/multi-export` นับเป็นข้อยกเว้น ด้านบน)
 2. 🔄 Sprint 16 — stamp brush, selection fill, layer opacity slider (tilemap)
 3. ⬜ Phase 6–8 — export matrix ให้ครบทุก engine, project management, advanced features
 
