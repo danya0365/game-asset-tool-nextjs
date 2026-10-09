@@ -1,9 +1,9 @@
 "use client";
 
 import {
-    getRecentProjects,
-    loadProjectFromFile,
-    type RecentProject,
+  getRecentProjects,
+  loadProjectFromFile,
+  type RecentProject,
 } from "@/src/infrastructure/storage/projectStorage";
 import { ComingSoonModal } from "@/src/presentation/components/molecules/ComingSoonModal";
 import { MainLayout } from "@/src/presentation/components/templates/MainLayout";
@@ -78,6 +78,12 @@ const features: FeatureCard[] = [
     title: "Reduce Photo Size",
     description: "ย่อขนาดรูปภาพ Batch พร้อมบีบอัด JPEG / PNG / WebP",
     href: "/reduce-photo-size",
+  },
+  {
+    icon: "✂️",
+    title: "Photo Editor",
+    description: "ครอป หมุน ย่อขนาด ส่งออก JPEG / PNG / WebP",
+    href: "/photo-editor",
   },
 ];
 
@@ -275,7 +281,7 @@ export function LandingView() {
                             {feature.description}
                           </div>
                         </button>
-                      )
+                      ),
                     )}
                   </div>
                 </div>
