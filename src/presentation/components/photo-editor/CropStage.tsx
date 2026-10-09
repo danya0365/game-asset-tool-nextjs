@@ -265,7 +265,7 @@ export const CropStage = forwardRef<CropStageHandle, CropStageProps>(
         <div ref={areaRef} className="relative flex-1 min-h-0 w-full">
           {hasFrame ? (
             <div
-              className="ie-panel-inset absolute inset-0 m-auto touch-none select-none overflow-hidden"
+              className="ie-panel-inset canvas-checker absolute inset-0 m-auto touch-none select-none overflow-hidden"
               // eslint-disable-next-line react/forbid-dom-props -- ค่า runtime (กรอบคำนวณจากพื้นที่ว่าง + สัดส่วน preset) ไม่ใช่ token
               style={{
                 width: f.w,

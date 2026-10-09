@@ -36,8 +36,13 @@ export interface ResizeSettings {
 }
 
 export interface FormatSettings {
-  format: OutputFormat;
-  /** 1-100 (PNG ใช้ค่านี้กับ upng palette ถ้ามี) */
+  /**
+   * "auto" = ใช้ format ของไฟล์ต้นฉบับ (PNG → PNG, WebP → WebP, อื่นๆ → JPEG)
+   * ค่า default เป็น "auto" เพราะการ export คนละ format โดยไม่ได้ขอ
+   * มักทำให้ alpha หาย (PNG → JPEG) โดยไม่รู้ตัว
+   */
+  format: OutputFormat | "auto";
+  /** 1-100 (PNG lossless ไม่ใช้ค่านี้) */
   quality: number;
 }
 
@@ -97,9 +102,16 @@ export const DEFAULT_RESIZE: ResizeSettings = {
 };
 
 export const DEFAULT_FORMAT: FormatSettings = {
-  format: "jpeg",
+  format: "auto",
   quality: 90,
 };
+
+/** format ที่ไฟล์ต้นฉบับอาจเป็น — ใช้ตัดสินค่า default ตอนเปิดไฟล์ */
+export function formatFromMime(mime: string): OutputFormat {
+  if (mime === "image/png") return "png";
+  if (mime === "image/webp") return "webp";
+  return "jpeg"; // jpeg, gif, bmp, avif, ...
+}
 
 /** มิติของภาพหลังหมุน 90/270 สลับด้าน */
 export function rotatedSize(

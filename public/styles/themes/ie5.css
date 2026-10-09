@@ -7,12 +7,12 @@
 :root,
 [data-theme="ie5"] {
   /* ── Fonts (ค่าจริงมาจาก next/font ใน app/layout.tsx) ── */
-  --font-body: var(--font-noto-thai), Tahoma, "MS Sans Serif", "Segoe UI",
-    sans-serif;
-  --font-heading-family: var(--font-noto-thai), Tahoma, "MS Sans Serif",
-    "Segoe UI", sans-serif;
-  --font-mono-family: ui-monospace, "SFMono-Regular", Menlo, Consolas,
-    "Courier New", monospace;
+  --font-body:
+    var(--font-noto-thai), Tahoma, "MS Sans Serif", "Segoe UI", sans-serif;
+  --font-heading-family:
+    var(--font-noto-thai), Tahoma, "MS Sans Serif", "Segoe UI", sans-serif;
+  --font-mono-family:
+    ui-monospace, "SFMono-Regular", Menlo, Consolas, "Courier New", monospace;
 
   /* ── Surface ─────────────────────────────────────────── */
   --background: #c0c0c0; /* หน้าต่าง/พื้นโปรแกรม (เทา Win98) */
@@ -70,6 +70,12 @@
   --canvas: #1a1a2e;
   --canvas-grid: #3a3a4e; /* เส้น grid/checkerboard */
   --overlay: rgb(0 0 0 / 0.5); /* ฉากหลัง dialog */
+
+  /* ── Checkerboard สำหรับ preview ภาพ ────────────────────
+     ต่างจาก --canvas ตั้งใจ: --canvas เข้มเพื่อให้เห็นขอบ asset สว่าง
+     แต่ preview ภาพถ่ายต้องการพื้นจาง ไม่งั้นภาพจะจมหายไปกับพื้น */
+  --checker-bg: #e8e8ec;
+  --checker-alt: #c4c4cc;
 
   /* บล็อกผลลัพธ์แบบจอเทอร์มินัล — คงหน้าตาเดิม (จอดำตัวเขียว) ทั้งสองโหมด */
   --terminal: #0c1116;
@@ -152,6 +158,10 @@
   /* ── Canvas ──────────────────────────────────────────── */
   /* canvas ไม่ override — เข้มอยู่แล้วทั้งสองโหมด (เช่นเดียวกับ terminal) */
   --overlay: rgb(0 0 0 / 0.65);
+
+  /* checkerboard พลิกเป็นโทนมืด (พื้นจาง) ให้เข้ากับ dark mode */
+  --checker-bg: #3a3a3a;
+  --checker-alt: #2a2a2a;
 
   /* ── Shadow เข้มขึ้นให้เห็นบนพื้นมืด ─────────────────── */
   --sk-shadow-xs: 1px 1px 0 rgb(0 0 0 / 0.4);
