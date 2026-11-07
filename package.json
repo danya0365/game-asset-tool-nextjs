@@ -6,12 +6,16 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf:deploy:staging": "opennextjs-cloudflare build && opennextjs-cloudflare deploy --env staging"
   },
   "dependencies": {
+    "@opennextjs/cloudflare": "^1.20.16",
     "clsx": "^2.1.1",
     "jszip": "^3.10.1",
-    "next": "15.5.9",
+    "next": "^15.5.29",
     "react": "19.1.2",
     "react-dom": "19.1.2",
     "tailwind-merge": "^3.6.0",
@@ -26,10 +30,11 @@
     "@types/react-dom": "^19",
     "@types/upng-js": "^2.1.5",
     "eslint": "^9",
-    "eslint-config-next": "15.5.7",
+    "eslint-config-next": "^15.5.29",
     "eslint-plugin-react": "^7.37.5",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.158.0"
   },
   "packageManager": "pnpm@9.15.0+sha512.76e2379760a4328ec4415815bcd6628dee727af3779aaa4c914e3944156c4299921a89f976381ee107d41f12cfa4b66681ca9c718f0668fa0831ed4c6d8ba56c"
 }

@@ -12,6 +12,7 @@ import {
   DEFAULT_RESIZE,
   ASPECT_PRESETS,
   calcOutputSize,
+  formatFromMime,
   rotatedSize,
 } from "@/src/domain/types/photoEditor";
 import {
@@ -48,12 +49,6 @@ export interface PhotoEditorResult {
 export type PhotoEditorStatus = "empty" | "ready" | "done" | "error";
 
 const MAX_FILE_BYTES = 64 * 1024 * 1024;
-
-function formatFromMime(mime: string): OutputFormat {
-  if (mime === "image/png") return "png";
-  if (mime === "image/webp") return "webp";
-  return "jpeg";
-}
 
 export function usePhotoEditor() {
   const [source, setSource] = useState<PhotoEditorSource | null>(null);
@@ -106,6 +101,10 @@ export function usePhotoEditor() {
     () => ASPECT_PRESETS.find((p) => p.id === aspectId)?.value ?? null,
     [aspectId],
   );
+
+  /** "auto" resolve เป็น format จริง — ใช้แสดงใน UI และส่งเข้า encoder */
+  const effectiveFormat: OutputFormat =
+    format.format === "auto" ? (source?.sourceFormat ?? "jpeg") : format.format;
 
   /** ลายนิ้วมือของการตั้งค่าทั้งชุด — ผลลัพธ์ที่สร้างคนละ key = ล้าสมัย */
   const settingsKey = useMemo(
@@ -174,6 +173,9 @@ export function usePhotoEditor() {
         });
         setRotation(0);
         setCrop({ x: 0, y: 0, w: width, h: height });
+        // format default = ตามไฟล์ต้นฉบับ → เปิด PNG มาแล้วได้ PNG ออก
+        // (คง alpha ไว้โดยไม่ต้องผู้ใช้เลือกเอง)
+        setFormat({ ...DEFAULT_FORMAT, format: formatFromMime(file.type) });
       } catch (err) {
         setError(err instanceof Error ? err.message : "เปิดไฟล์ไม่สำเร็จ");
       } finally {
@@ -235,6 +237,7 @@ export function usePhotoEditor() {
         rotation,
         resize,
         format,
+        sourceFormat: source.sourceFormat,
       });
       // รอบก่อนหน้ายังวิ่งอยู่ → ผลของมันล้าสมัย ทิ้ง (รอบชนะ revoke เอง)
       if (gen !== runRef.current) return;
@@ -275,13 +278,20 @@ export function usePhotoEditor() {
     setDismissedKey(result.key);
   }, [result]);
 
-  /** ค่าตั้งทั้งหมดกลับค่าเริ่มต้น (ภาพที่เปิดไว้ยังอยู่) */
+  /** ค่าตั้งกลับค่าเริ่มต้น (ภาพที่เปิดไว้ยังอยู่)
+   *  format คงเป็นของไฟล์ต้นฉบับ ไม่ใช่ "auto" — ถ้าใช้ auto ตอนนี้
+   *  ผู้ใช้ที่เปิด PNG แล้วสลับไป JPEG จะกลับมาได้ PNG (ซึ่งถูกต้อง)
+   *  แต่ผู้ใช้ที่ยังไม่เคยแตะปุ่ม format จะถูกรีเซ็ตโดยไม่จำเป็น
+   */
   const resetAll = useCallback(() => {
     setResize(DEFAULT_RESIZE);
-    setFormat(DEFAULT_FORMAT);
+    setFormat({
+      ...DEFAULT_FORMAT,
+      format: source?.sourceFormat ?? DEFAULT_FORMAT.format,
+    });
     setAspectId("free");
     setRotation(0);
-  }, []);
+  }, [source?.sourceFormat]);
 
   const rotateBy = useCallback((delta: 90 | -90) => {
     setRotation((prev) => ((prev + delta + 360) % 360) as Rotation);
@@ -295,6 +305,7 @@ export function usePhotoEditor() {
     aspect,
     resize,
     format,
+    effectiveFormat,
     status,
     isProcessing,
     isStale,

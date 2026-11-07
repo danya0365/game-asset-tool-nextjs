@@ -4,12 +4,15 @@
    ⚠️ เพิ่ม class ที่นี่เมื่อ "มีที่ใช้จริง" เท่านั้น (เคยมี dead CSS สะสม 180 บรรทัด)
    ============================================ */
 @layer base {
-  /* ===== Checkerboard — พื้นหลังแสดง "ส่วนโปร่งใส" ของภาพ ===== */
-  .canvas-checker {
-    background-color: var(--canvas);
+  /* ===== Checkerboard — พื้นหลังแสดง "ส่วนโปร่งใส" ของภาพ =====
+     ใช้ --checker-* (ไม่ใช่ --canvas) — --canvas เข้มโดยตั้งใจสำหรับ
+     pixel editor ที่ต้องเห็นขอบ asset สว่าง แต่ภาพถ่ายจะจมหายไปกับพื้น */
+  .canvas-checker,
+  .ie-panel-inset.canvas-checker {
+    background-color: var(--checker-bg);
     background-image: repeating-conic-gradient(
-      var(--canvas-grid) 0% 25%,
-      var(--canvas) 0% 50%
+      var(--checker-alt) 0% 25%,
+      var(--checker-bg) 0% 50%
     );
     background-size: 16px 16px;
     background-position: 50%;

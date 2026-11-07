@@ -203,6 +203,8 @@ export function PhotoEditorView() {
                 <FormatPanel
                   settings={editor.format}
                   onChange={editor.setFormat}
+                  sourceFormat={source.sourceFormat}
+                  effectiveFormat={editor.effectiveFormat}
                 />
               </div>
             </div>

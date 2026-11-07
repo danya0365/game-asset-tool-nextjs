@@ -16,6 +16,8 @@ interface FeatureCard {
   title: string;
   description: string;
   href?: string;
+  /** เหตุผลที่ยังใช้ไม่ได้ — แสดงใน modal ตอนกดการ์ดใบนี้ */
+  detail?: string;
 }
 
 interface QuickAction {
@@ -24,7 +26,20 @@ interface QuickAction {
   description: string;
 }
 
+// ลำดับ = ของที่ใช้ได้จริงก่อน · ตัวที่ยังไม่เสร็จ (ไม่มี href) ไปท้ายสุด
 const features: FeatureCard[] = [
+  {
+    icon: "📉",
+    title: "Reduce Photo Size",
+    description: "ย่อขนาดรูปภาพ Batch พร้อมบีบอัด JPEG / PNG / WebP",
+    href: "/reduce-photo-size",
+  },
+  {
+    icon: "✂️",
+    title: "Photo Editor",
+    description: "ครอป หมุน ย่อขนาด ส่งออก JPEG / PNG / WebP",
+    href: "/photo-editor",
+  },
   {
     icon: "🖼️",
     title: "Pixel Editor",
@@ -52,7 +67,7 @@ const features: FeatureCard[] = [
   {
     icon: "📦",
     title: "Atlas Packer",
-    description: "Pack textures อัตโนมัติ รองรับหลาย algorithm",
+    description: "Pack textures อัตโนมัติ รองรับหลาย layout",
     href: "/atlas-packer",
   },
   {
@@ -62,28 +77,19 @@ const features: FeatureCard[] = [
     href: "/color-palette",
   },
   {
-    icon: "📤",
-    title: "Multi-Export",
-    description: "Export ไปยัง Cocos, Phaser, Unity และอื่นๆ",
-    href: "/multi-export",
-  },
-  {
     icon: "🧩",
     title: "Image Shuffle",
     description: "สับเปลี่ยน Block รูปภาพ พร้อม CSS Reconstruction",
     href: "/image-shuffle",
   },
   {
-    icon: "📉",
-    title: "Reduce Photo Size",
-    description: "ย่อขนาดรูปภาพ Batch พร้อมบีบอัด JPEG / PNG / WebP",
-    href: "/reduce-photo-size",
-  },
-  {
-    icon: "✂️",
-    title: "Photo Editor",
-    description: "ครอป หมุน ย่อขนาด ส่งออก JPEG / PNG / WebP",
-    href: "/photo-editor",
+    // TODO: ยัง export ได้แค่ metadata stub — Scale/Padding/Power-of-2/Trim ไม่มีผลกับพิกเซล
+    // งาน packing จริงอยู่ที่ Atlas Packer แล้ว ต้องรอให้เขียน packing + scale ใหม่ก่อนค่อยเปิด
+    icon: "📤",
+    title: "Multi-Export",
+    description: "Export ไปยัง Cocos, Phaser, Unity และอื่นๆ (กำลังทำ)",
+    detail:
+      "เวอร์ชันนี้ยัง export ได้แค่ไฟล์ metadata — ตัวเลข Scale / Padding / Power of Two ยังไม่มีผลกับภาพจริง กำลังเขียนส่วน packing ใหม่",
   },
 ];
 
@@ -111,7 +117,7 @@ const quickActions: QuickAction[] = [
 ];
 
 export function LandingView() {
-  const { isOpen, featureName, showComingSoon, hideComingSoon } =
+  const { isOpen, featureName, detail, showComingSoon, hideComingSoon } =
     useComingSoonModal();
 
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
@@ -270,10 +276,17 @@ export function LandingView() {
                       ) : (
                         <button
                           key={feature.title}
-                          className="ie-panel-inset p-3 text-left hover:bg-muted-surface transition-colors"
-                          onClick={() => showComingSoon(feature.title)}
+                          className="ie-panel-inset p-3 text-left opacity-60 hover:bg-muted-surface transition-colors"
+                          onClick={() =>
+                            showComingSoon(feature.title, feature.detail)
+                          }
                         >
-                          <div className="text-2xl mb-1">{feature.icon}</div>
+                          <div className="text-2xl mb-1">
+                            {feature.icon}
+                            <span className="ie-badge-warning ml-1 align-middle">
+                              กำลังทำ
+                            </span>
+                          </div>
                           <div className="font-medium text-xs mb-1 text-foreground">
                             {feature.title}
                           </div>
@@ -390,6 +403,7 @@ export function LandingView() {
         isOpen={isOpen}
         onClose={hideComingSoon}
         featureName={featureName}
+        detail={detail}
       />
     </MainLayout>
   );

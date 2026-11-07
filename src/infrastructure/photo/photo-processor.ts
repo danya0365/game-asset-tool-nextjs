@@ -33,6 +33,8 @@ export interface ProcessOptions {
   rotation: Rotation;
   resize: ResizeSettings;
   format: FormatSettings;
+  /** format ของไฟล์ต้นฉบับ — ใช้เมื่อ opts.format.format === "auto" */
+  sourceFormat: OutputFormat;
 }
 
 /** โหลด File/Blob เป็น HTMLImageElement (object URL ต้อง revoke ที่ผู้เรียก) */
@@ -182,7 +184,9 @@ export async function processPhoto(
   originalName: string,
   opts: ProcessOptions,
 ): Promise<ProcessResult> {
-  const format = opts.format.format;
+  // "auto" = คง format เดิมของไฟล์ (PNG → PNG, WebP → WebP, อื่นๆ → JPEG)
+  const format =
+    opts.format.format === "auto" ? opts.sourceFormat : opts.format.format;
   const canvas = renderCropToCanvas(source, opts, !SUPPORTS_ALPHA[format]);
 
   const blob = await canvasToBlob(

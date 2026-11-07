@@ -17,9 +17,11 @@
    เพิ่มธีมใหม่ = สร้าง themes/<id>.css แล้ว @import ต่อท้ายบรรทัดนี้ */
 @import "./themes/ie5.css";
 
-/* Skin + component class ที่ต่อยอดจาก token */
-@import "./components.css";
+/* Skin + component class ที่ต่อยอดจาก token
+   ⚠️ ลำดับสำคัญ: ie5.css ก่อน components.css
+      คลาสที่ override กัน (.canvas-checker บน .ie-panel-inset) ต้องโหลดทีหลัง */
 @import "./ie5.css";
+@import "./components.css";
 
 @layer base {
   body {
